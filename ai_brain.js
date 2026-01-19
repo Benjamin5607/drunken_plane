@@ -1,4 +1,6 @@
 // ai_brain.js
+// Drunken Plane AI Bartender 'Emily' 🍸
+
 export class AIBrain {
     constructor(apiKey, translations) {
         this.apiKey = apiKey;
@@ -6,6 +8,7 @@ export class AIBrain {
         this.models = ["llama-3.3-70b-versatile", "mixtral-8x7b-32768"];
     }
 
+    // 📏 거리 계산 (GPS)
     calculateDistance(lat1, lon1, lat2, lon2) {
         if (!lat1 || !lon1 || !lat2 || !lon2) return 99999;
         const R = 6371; 
@@ -18,6 +21,7 @@ export class AIBrain {
         return R * c;
     }
 
+    // 🔍 [Bar Search] 술과 분위기 검색
     getRelevantPlaces(query, db, userLoc) {
         if (!query) return [];
         const keywords = query.toLowerCase().split(" ");
@@ -48,8 +52,10 @@ export class AIBrain {
             .slice(0, 10);
     }
 
+    // 💬 채팅 (에밀리 페르소나)
     async ask(query, history, db, currentCountry, userLoc) {
-        if (!this.apiKey) return "🍸 Please provide an API Key first, honey.";
+        if (!this.apiKey || this.apiKey.includes("__SECRET")) return "🍸 API Key가 아직 도착하지 않았어요. (잠시 후 다시 시도해주세요)";
+        
         const relevantPlaces = this.getRelevantPlaces(query, db, userLoc);
         const contextStr = relevantPlaces.length > 0 ? relevantPlaces.map(p => `- [${p.name}] (${p.origin_country}) ${p.distInfo||""}: ${p.desc_ko||""}`).join("\n") : "No matches in DB.";
 
@@ -66,6 +72,7 @@ export class AIBrain {
         return await this._callGroq([{role:"system",content:systemPrompt}, ...history.slice(-4), {role:"user",content:query}]);
     }
 
+    // 📝 리뷰 작성
     async writeReview(name, country, isExternal, data) {
         const prompt = isExternal 
             ? `Write a 'Bartender's Review' for "${name}" in "${country}" (External). Vibe? Drink? Price? Language: ${this.t.ai}`
@@ -86,6 +93,6 @@ export class AIBrain {
                 }
             } catch (e) { console.error(e); }
         }
-        return "Emily is busy mixing drinks. 🍸";
+        return "Emily is busy mixing drinks. 🍸 (Network Error)";
     }
 }
