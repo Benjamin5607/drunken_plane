@@ -24,15 +24,10 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      # 🔥 [수정됨] API Key 주입 방식 강화
+      # 🔥 [여기만 보세요] 로봇이 이 글자를 찾아서 키로 바꿉니다.
       - name: Inject Secrets
-        env:
-          SHEET_URL: ${{ secrets.PRIVATE_SHEET_URL }}
-          GROQ_KEY: ${{ secrets.GROQ_API_KEY }}
         run: |
-          # index.html 파일에서 플레이스홀더를 찾아서 시크릿 값으로 교체
-          sed -i "s|__SECRET_SHEET_URL__|$SHEET_URL|g" index.html
-          sed -i "s|__SECRET_GROQ_KEY__|$GROQ_KEY|g" index.html
+          sed -i 's|__SECRET_GROQ_KEY__|${{ secrets.GROQ_API_KEY }}|g' index.html
         
       - name: Setup Pages
         uses: actions/configure-pages@v5
