@@ -1,8 +1,8 @@
-name: Deploy Drunken Plane 🍸
+name: Deploy Drunken Plane (Debug Mode) 🕵️
 
 on:
   push:
-    branches: ["main"]
+    branches: ["main", "master"] # 둘 다 작동하게 함
   workflow_dispatch:
 
 permissions:
@@ -24,11 +24,27 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      # 🔥 [여기만 보세요] 로봇이 이 글자를 찾아서 키로 바꿉니다.
+      # 🔍 디버깅 단계 추가
+      - name: Debug Secrets
+        env:
+          MY_KEY: ${{ secrets.GROQ_API_KEY }}
+        run: |
+          echo "Checking Secrets..."
+          if [ -z "$MY_KEY" ]; then
+            echo "❌ Error: GROQ_API_KEY is EMPTY!"
+            exit 1
+          else
+            echo "✅ GROQ_API_KEY found (length: ${#MY_KEY})"
+          fi
+
       - name: Inject Secrets
         run: |
+          sed -i 's|__SECRET_SHEET_URL__|${{ secrets.PRIVATE_SHEET_URL }}|g' index.html
           sed -i 's|__SECRET_GROQ_KEY__|${{ secrets.GROQ_API_KEY }}|g' index.html
-        
+          
+          # 주입 잘 됐는지 확인 (앞 10글자만 출력)
+          grep "const INJECTED_KEY" index.html
+
       - name: Setup Pages
         uses: actions/configure-pages@v5
       - name: Upload artifact
