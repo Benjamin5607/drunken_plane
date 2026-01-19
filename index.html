@@ -6,10 +6,13 @@
     <title>Drunken Plane 🍸</title>
     
     <link rel="icon" href="emily.jpg" type="image/jpeg">
-    <link rel="apple-touch-icon" href="emily.jpg"> <meta name="apple-mobile-web-app-capable" content="yes">
+    <link rel="apple-touch-icon" href="emily.jpg">
+    <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="theme-color" content="#050505">
-    <link rel="manifest" href="manifest.json"> <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <link rel="manifest" href="manifest.json">
+
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 
     <style>
@@ -74,7 +77,7 @@
 
         .map-search-box { position: absolute; top: 70px; left: 50%; transform: translateX(-50%); width: 90%; z-index: 1000; display: flex; gap: 5px; }
         .map-input { flex: 1; padding: 10px; border-radius: 8px; background: rgba(0,0,0,0.8); color: white; border: 1px solid var(--theme); }
-        .gps-btn { background: var(--theme); border: none; width: 40px; border-radius: 8px; cursor: pointer; }
+        .gps-btn { background: var(--theme); border: none; width: 40px; border-radius: 8px; cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 18px; }
         #detail-map { width: 100%; height: 35vh; border-bottom: 2px solid var(--theme); }
         .review-box { flex: 1; overflow-y: auto; padding: 20px; }
         
@@ -108,7 +111,11 @@
 
     <div id="page-map" class="page hidden-right">
         <div class="sub-nav"><button class="back-btn" onclick="nav('page-main')">🏠</button> <div class="nav-title">WORLD MAP</div></div>
-        <div class="map-search-box"><input id="map-input" class="map-input" type="text" placeholder="City or Bar..."><button class="gps-btn" onclick="panToUser()">◎</button></div>
+        <div class="map-search-box">
+            <input id="map-input" class="map-input" type="text" placeholder="City or Bar..." onkeydown="if(event.key==='Enter') searchMap()">
+            <button class="gps-btn" onclick="searchMap()">🔍</button>
+            <button class="gps-btn" onclick="panToUser()" style="margin-left:5px;">◎</button>
+        </div>
         <div id="world-map" style="width:100%; height:100%;"></div>
     </div>
 
@@ -139,7 +146,7 @@
         const SHEET_CSV_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vSIfH4gg0a9eZp7xYu35eBGjSgCkOZqwptCgyzMG6RI_iHvOx11EF31HbvO-GL3iRwwUnnLpM2ZVH7O/pub?output=csv";
         const BOT_URL = "https://drunken-bot.wonbin-shim.workers.dev"; 
 
-        // ✅ AI Brain (야시시한 매력 + 보안 + 10km)
+        // ✅ AI Brain (매력 만점 에밀리 💋)
         class AIBrain_Secure {
             constructor(botUrl) { this.botUrl = botUrl; }
             
@@ -159,12 +166,10 @@
                 const lang = window.currentLang;
                 const descKey = lang === 'EN' ? 'desc_en' : 'desc_ko';
                 
-                // 에밀리의 페르소나 설정
                 const langInstruction = lang === 'KO' 
                     ? "Speak Korean. Tone: Flirty, Charming, Seductive (Call user '자기야', '오빠')." 
                     : "Speak English. Tone: Flirty, Charming, Seductive (Call user 'Honey', 'Darling').";
 
-                // 1. 특정 장소 감지
                 let targetCountry = currentCountry;
                 const queryLower = query.toLowerCase();
                 for (let c in db) {
@@ -175,7 +180,6 @@
                     }
                 }
 
-                // 2. 10km GPS 검색
                 if (searchMode === "Global" && userLoc && userLoc.lat) {
                     let nearbyPlaces = [];
                     for(let c in db) {
@@ -193,7 +197,6 @@
                     }
                 }
 
-                // 3. DB 검색
                 if (context === "") {
                     if(db[targetCountry]) {
                         const places = db[targetCountry].slice(0, 15);
@@ -385,7 +388,6 @@
                 const safeName = p.name.replace(/'/g, "\\'");
                 const mapUrl = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(p.name + " " + p.address)}`;
 
-                // 🔥 언어별 설명
                 const desc = window.currentLang === 'EN' ? (p.desc_en || p.desc_ko || "") : (p.desc_ko || "");
 
                 el.innerHTML = `
@@ -433,7 +435,6 @@
             }
         };
 
-        // 🔥 [첫 인사]
         window.startChat = function() { 
             let msg = "";
             if (window.currentLang === 'KO') msg = "왔어? 기다렸잖아~ 💋 오늘 밤엔 뭐 마실까?";
@@ -486,12 +487,17 @@
             }
         };
         
-        window.searchMap = function() {
-            const q = document.getElementById('map-input').value.toLowerCase();
+        // 🔥 [검색 기능 강화: DB + Nominatim 연동]
+        window.searchMap = async function() {
+            const q = document.getElementById('map-input').value.trim();
+            if(!q) return;
+            const qLower = q.toLowerCase();
             let found = false;
+
+            // 1. DB 검색
             for(let c in window.PLACE_DB) {
                 for(let p of window.PLACE_DB[c]) {
-                    if((p.name+p.address).toLowerCase().includes(q)) {
+                    if((p.name+p.address).toLowerCase().includes(qLower)) {
                         if(p.lat && window.mapInstance) {
                             window.mapInstance.setView([p.lat, p.lon], 16);
                             L.popup().setLatLng([p.lat, p.lon]).setContent(`<b>${p.name}</b>`).openOn(window.mapInstance);
@@ -501,7 +507,28 @@
                 }
                 if(found) break;
             }
-            if(!found) alert("Not found");
+
+            // 2. 외부 검색 (Nominatim)
+            if(!found) {
+                try {
+                    const btn = document.querySelector('.gps-btn');
+                    const originalText = btn.innerText;
+                    btn.innerText = "⏳";
+                    
+                    const res = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(q)}`);
+                    const data = await res.json();
+                    
+                    if (data && data.length > 0) {
+                        const lat = data[0].lat;
+                        const lon = data[0].lon;
+                        window.mapInstance.setView([lat, lon], 12);
+                        L.popup().setLatLng([lat, lon]).setContent(`<b>📍 ${q}</b>`).openOn(window.mapInstance);
+                    } else {
+                        alert("Not found 😢");
+                    }
+                    btn.innerText = originalText;
+                } catch(e) { console.error(e); }
+            }
         };
 
         window.panToUser = function() {
