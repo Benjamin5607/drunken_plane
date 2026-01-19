@@ -75,9 +75,27 @@
         .chat-input { flex: 1; padding: 12px; border-radius: 8px; background: #222; border: 1px solid #444; color: white; outline:none; }
         .chat-send { background: var(--theme); border: none; padding: 0 20px; border-radius: 8px; font-weight: bold; cursor: pointer; }
 
-        .map-search-box { position: absolute; top: 70px; left: 50%; transform: translateX(-50%); width: 90%; z-index: 1000; display: flex; gap: 5px; }
-        .map-input { flex: 1; padding: 10px; border-radius: 8px; background: rgba(0,0,0,0.8); color: white; border: 1px solid var(--theme); }
-        .gps-btn { background: var(--theme); border: none; width: 40px; border-radius: 8px; cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 18px; }
+        /* 🔥 [검색 박스 수정] 폼 태그 + 높은 Z-Index + 명확한 버튼 */
+        .map-search-container { 
+            position: absolute; top: 70px; left: 50%; transform: translateX(-50%); 
+            width: 95%; max-width: 500px; z-index: 9999; /* 지도 위로 확실하게 */
+            display: flex; gap: 5px; 
+        }
+        .map-input { 
+            flex: 1; padding: 12px 15px; border-radius: 8px; 
+            background: rgba(0,0,0,0.9); color: white; 
+            border: 2px solid var(--theme); font-size: 16px; outline: none;
+        }
+        .search-btn {
+            background: var(--theme); border: none; border-radius: 8px;
+            color: black; font-weight: bold; padding: 0 15px; cursor: pointer;
+            white-space: nowrap; font-size: 14px;
+        }
+        .gps-btn { 
+            background: #333; border: 1px solid #555; border-radius: 8px;
+            width: 50px; cursor: pointer; font-size: 20px; display: flex; align-items: center; justify-content: center; color: white;
+        }
+        
         #detail-map { width: 100%; height: 35vh; border-bottom: 2px solid var(--theme); }
         .review-box { flex: 1; overflow-y: auto; padding: 20px; }
         
@@ -111,18 +129,23 @@
 
     <div id="page-map" class="page hidden-right">
         <div class="sub-nav"><button class="back-btn" onclick="nav('page-main')">🏠</button> <div class="nav-title">WORLD MAP</div></div>
-        <div class="map-search-box">
-            <input id="map-input" class="map-input" type="text" placeholder="City or Bar..." onkeydown="if(event.key==='Enter') searchMap()">
-            <button class="gps-btn" onclick="searchMap()">🔍</button>
-            <button class="gps-btn" onclick="panToUser()" style="margin-left:5px;">◎</button>
-        </div>
+        
+        <form class="map-search-container" onsubmit="event.preventDefault(); searchMap();">
+            <input id="map-input" class="map-input" type="text" placeholder="Seoul, Zest...">
+            <button type="submit" class="search-btn">검색</button>
+            <button type="button" class="gps-btn" onclick="panToUser()">◎</button>
+        </form>
+
         <div id="world-map" style="width:100%; height:100%;"></div>
     </div>
 
     <div id="page-chat" class="page hidden-right">
         <div class="sub-nav"><button class="back-btn" onclick="nav('page-main')">↓</button> <div class="nav-title">Emily</div></div>
         <div id="chat-box" class="chat-container"></div>
-        <div class="chat-input-area"><input id="chat-input" class="chat-input" type="text" placeholder="Talk to Emily..."><button class="chat-send" onclick="sendChat()">➤</button></div>
+        <form class="chat-input-area" onsubmit="event.preventDefault(); sendChat();">
+            <input id="chat-input" class="chat-input" type="text" placeholder="Talk to Emily...">
+            <button type="submit" class="chat-send">➤</button>
+        </form>
     </div>
 
     <div id="page-detail" class="page hidden-right">
@@ -146,7 +169,7 @@
         const SHEET_CSV_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vSIfH4gg0a9eZp7xYu35eBGjSgCkOZqwptCgyzMG6RI_iHvOx11EF31HbvO-GL3iRwwUnnLpM2ZVH7O/pub?output=csv";
         const BOT_URL = "https://drunken-bot.wonbin-shim.workers.dev"; 
 
-        // ✅ AI Brain (매력 만점 에밀리 💋)
+        // ✅ AI Brain
         class AIBrain_Secure {
             constructor(botUrl) { this.botUrl = botUrl; }
             
@@ -244,7 +267,7 @@
                         return data.choices[0].message.content;
                     }
                 } catch (e) { console.error(e); }
-                return "Emily is busy powdering her nose... 💋 (Error)";
+                return "Emily is busy... 💋 (Error)";
             }
         }
 
@@ -439,7 +462,6 @@
             let msg = "";
             if (window.currentLang === 'KO') msg = "왔어? 기다렸잖아~ 💋 오늘 밤엔 뭐 마실까?";
             else msg = "Hey Honey 💋 Long time no see. What's your poison tonight? 🍷";
-            
             if(window.chatHistory.length === 0) addMsg(msg, 'bot'); 
         };
 
@@ -450,12 +472,10 @@
             if(window.emily) {
                 const userLoc = window.userLat ? {lat:window.userLat, lon:window.userLon} : null;
                 const reply = await window.emily.ask(txt, window.chatHistory, window.PLACE_DB, window.currentCountry, userLoc);
-                
                 let fmtReply = reply.replace(/\[(.*?)\]/g, (match, p1) => {
                     const safeName = p1.replace(/'/g, "\\'");
                     return `<br><button class="reco-btn" onclick="openReview('${safeName}', '${window.currentCountry}')">📍 ${p1}</button>`;
                 });
-                
                 addMsg(fmtReply, 'bot');
                 window.chatHistory.push({role:'user',content:txt}, {role:'assistant',content:reply});
             }
@@ -476,7 +496,6 @@
                 window.markerLayer = L.layerGroup().addTo(window.mapInstance);
             }
             if(window.markerLayer) window.markerLayer.clearLayers();
-            
             for(let c in window.PLACE_DB) {
                 window.PLACE_DB[c].forEach(p => {
                     if(p.lat && p.lon) {
@@ -487,10 +506,16 @@
             }
         };
         
-        // 🔥 [검색 기능 강화: DB + Nominatim 연동]
+        // 🔥 [검색 기능: 엔터키 이슈 완벽 해결]
         window.searchMap = async function() {
-            const q = document.getElementById('map-input').value.trim();
+            const inp = document.getElementById('map-input');
+            const q = inp.value.trim();
             if(!q) return;
+
+            const btn = document.querySelector('.search-btn');
+            const originalText = btn.innerText;
+            btn.innerText = "⏳"; // 로딩 표시
+
             const qLower = q.toLowerCase();
             let found = false;
 
@@ -511,13 +536,8 @@
             // 2. 외부 검색 (Nominatim)
             if(!found) {
                 try {
-                    const btn = document.querySelector('.gps-btn');
-                    const originalText = btn.innerText;
-                    btn.innerText = "⏳";
-                    
                     const res = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(q)}`);
                     const data = await res.json();
-                    
                     if (data && data.length > 0) {
                         const lat = data[0].lat;
                         const lon = data[0].lon;
@@ -526,9 +546,11 @@
                     } else {
                         alert("Not found 😢");
                     }
-                    btn.innerText = originalText;
                 } catch(e) { console.error(e); }
             }
+            
+            btn.innerText = originalText; // 버튼 복구
+            inp.blur(); // 키보드 내리기
         };
 
         window.panToUser = function() {
