@@ -8,7 +8,7 @@ export class AIBrain {
         this.models = ["llama-3.3-70b-versatile", "mixtral-8x7b-32768"];
     }
 
-    // 📏 거리 계산 (GPS 기반 추천용)
+    // 📏 거리 계산
     calculateDistance(lat1, lon1, lat2, lon2) {
         if (!lat1 || !lon1 || !lat2 || !lon2) return 99999;
         const R = 6371; 
@@ -21,12 +21,13 @@ export class AIBrain {
         return R * c;
     }
 
-    // 🔍 [Bar Search] 분위기와 주종에 따른 검색
+    // 🔍 [Bar Search] 술과 분위기 중심 검색
     getRelevantPlaces(query, db, userLoc) {
         if (!query) return [];
         const keywords = query.toLowerCase().split(" ");
         let allCandidates = [];
 
+        // DB 데이터 평탄화 (국가 구분 없이 통합)
         Object.keys(db).forEach(country => {
             db[country].forEach(place => {
                 let dist = userLoc ? this.calculateDistance(userLoc.lat, userLoc.lon, place.lat, place.lon) : 0;
@@ -34,6 +35,136 @@ export class AIBrain {
             });
         });
 
+        // 점수 매기기 (술 종류, 분위기, 거리)
+        let scored = allCandidates.map(p => {
+            let score = 0;
+            const content = (
+                (p.name || "") + " " + (p.category || "") + " " + 
+                (p.label || "") + " " + (p.desc_ko || "") + " " + (p.desc_en || "") + " " +
+                (p.address || "") + " " + (p.origin_country || "")
+            ).toLowerCase();
+
+            keywords.forEach(k => {
+                if (content.includes(k)) score += 10;
+                // 술 키워드 가산점
+                if (['whisky', 'cocktail', 'beer', 'wine', 'bar', 'pub', 'soju'].includes(k)) score += 5;
+            });
+
+            // 거리 가산점 (GPS)
+            if (userLoc && p.distance < 5) score += 20; 
+            else if (userLoc && p.distance < 20) score += 10;
+
+            return { place: p, score: score };
+        });
+
+        // 정렬: 점수 높고 > 거리 가까운 순
+        let relevant = scored
+            .filter(item => item.score > 0)
+            .sort((a, b) => b.score - a.score || a.place.distance - b.place.distance)
+            .map(item => {
+                let distInfo = userLoc ? `(${item.place.distance.toFixed(1)}km away)` : "";
+                return { ...item.place, distInfo: distInfo };
+            });
+
+        return relevant.slice(0, 10);
+    }
+
+    // 💬 채팅 (에밀리)
+    async ask(query, history, db, currentCountry, userLoc) {
+        if (!this.apiKey) return "🍸 API Key가 필요해요, Darling.";
+
+        const relevantPlaces = this.getRelevantPlaces(query, db, userLoc);
+        
+        let contextStr = "";
+        let mode = "EXTERNAL"; 
+
+        if (relevantPlaces.length > 0) {
+            mode = "DATABASE"; 
+            contextStr = relevantPlaces.map(p => 
+                `- [${p.name}] (${p.origin_country}, ${p.category}) ${p.distInfo || ""}: ${p.desc_ko || ""}`
+            ).join("\n");
+        } else {
+            contextStr = "No specific bar found in DB matching your request.";
+        }
+
+        const systemPrompt = `
+        You are Emily, a witty and sophisticated AI Bartender.
+        User Location: ${userLoc ? `Lat ${userLoc.lat}, Lon ${userLoc.lon}` : "Unknown"}
+        Current Map View: ${currentCountry}
+        User Query: "${query}"
+        
+        [SEARCH RESULTS]
+        ${contextStr}
+
+        [RULES]
+        1. 🥃 **Recommendation:**
+           - If [SEARCH RESULTS] exist, recommend them first.
+           - If empty, suggest famous bars from your General Knowledge (External).
+        
+        2. 🍸 **Vibe Matching:**
+           - "Quiet" -> Whisky/Wine Bars.
+           - "Fun/Party" -> Pubs/Clubs.
+           - "Date" -> Cocktail Bars with a view.
+           
+        3. **Tone:** Warm, slightly flirty but professional. Use emojis (🥃, 🥂, 🍸).
+        4. **Format:** Use brackets for names. E.g., [Zest].
+        `;
+
+        const messages = [
+            { role: "system", content: systemPrompt },
+            ...history.slice(-4),
+            { role: "user", content: query }
+        ];
+
+        return await this._callGroq(messages);
+    }
+
+    // 📝 리뷰 작성
+    async writeReview(placeName, country, isExternal = false, placeData = null) {
+        let prompt = "";
+        if (isExternal) {
+            prompt = `
+            User asks about "${placeName}" in "${country}" (External).
+            Write a 'Bartender's Quick Review'.
+            1. What's the vibe?
+            2. Best drink to order?
+            3. Is it expensive?
+            Language: ${this.t.ai}
+            `;
+        } else {
+            prompt = `
+            Write a detailed 'Tasting Note' for "${placeName}" in "${country}".
+            Context: ${placeData.desc_ko || placeData.desc_en}
+            Label: ${placeData.label}
+            
+            Structure:
+            1. 🚪 First Impression (Atmosphere)
+            2. 🥃 Signature Drink (Menu)
+            3. 👥 Crowd & Occasion
+            4. 💋 Emily's Secret Tip
+            Language: ${this.t.ai}
+            `;
+        }
+        return await this._callGroq([{role: "user", content: prompt}]);
+    }
+
+    async _callGroq(messages) {
+        for (let model of this.models) {
+            try {
+                const res = await fetch("https://api.groq.com/openai/v1/chat/completions", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json", "Authorization": `Bearer ${this.apiKey}` },
+                    body: JSON.stringify({ model: model, messages: messages, temperature: 0.7 }) 
+                });
+                if (res.ok) {
+                    const data = await res.json();
+                    return data.choices[0].message.content;
+                }
+            } catch (e) { console.error(e); }
+        }
+        return "Emily is shaking a cocktail (Network Error). 🍸";
+    }
+}
         let scored = allCandidates.map(p => {
             let score = 0;
             const content = (
