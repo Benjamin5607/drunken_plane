@@ -4,260 +4,237 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Drunken Plane 🍸</title>
-    
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-
     <style>
-        /* 🎨 THEME: Gold & Dark (Luxurious Bar) */
-        :root { 
-            --theme: #d4af37; /* Metallic Gold */
-            --theme-ext: #a855f7; /* Purple for External */
-            --bg: #050505; 
-            --card-bg: rgba(20, 20, 25, 0.9);
-            --text: #e0e0e0; 
-        }
-        
-        body { margin: 0; padding: 0; background: var(--bg); color: var(--text); font-family: 'Segoe UI', sans-serif; overflow: hidden; -webkit-tap-highlight-color: transparent; }
-        
-        /* Layout */
-        .page { position: absolute; top: 0; left: 0; width: 100%; height: 100%; transition: transform 0.3s ease-in-out; display: flex; flex-direction: column; background: var(--bg); z-index: 100; }
-        .hidden-left { transform: translateX(-100%); }
-        .hidden-right { transform: translateX(100%); }
-        .active { transform: translate(0, 0); }
-
-        /* Nav */
-        .top-nav { height: 60px; display: flex; justify-content: space-between; align-items: center; padding: 0 20px; z-index: 500; background: rgba(0,0,0,0.8); border-bottom: 1px solid #333; }
-        .passport-btn { font-size: 24px; cursor: pointer; background: rgba(212, 175, 55, 0.1); padding: 8px; border-radius: 12px; border: 1px solid var(--theme); }
-        
-        .lang-switcher { display: flex; gap: 5px; }
-        .lang-btn { background: rgba(0,0,0,0.6); border: 1px solid #444; color: #888; padding: 5px 10px; border-radius: 20px; cursor: pointer; font-size: 14px; }
-        .lang-btn.active { background: var(--theme); color: black; border-color: var(--theme); font-weight: bold; }
-
-        /* Main */
-        .header-title { text-align: center; padding: 15px 0; }
-        .header-title div { color: var(--theme); font-size: 26px; font-weight: 900; letter-spacing: 4px; text-shadow: 0 0 10px rgba(212, 175, 55, 0.5); }
-        .map-trigger-btn { margin-top: 10px; padding: 10px 25px; background: var(--theme); color: black; border: none; border-radius: 30px; font-weight: bold; cursor: pointer; font-size: 13px; box-shadow: 0 0 15px rgba(212, 175, 55, 0.3); }
-
-        .country-select-container { text-align: center; margin: 10px 0; }
-        #country-select { width: 85%; max-width: 400px; padding: 12px; background: #111; border: 1px solid var(--theme); color: white; border-radius: 10px; font-size: 16px; outline: none; }
-
-        .filter-container { width: 100%; padding: 10px 0; overflow-x: auto; display: flex; gap: 8px; justify-content: center; scrollbar-width: none; }
-        .type-btn { padding: 8px 15px; border-radius: 20px; font-size: 12px; font-weight: bold; background: #1a1a1a; color: #777; border: 1px solid #333; white-space: nowrap; cursor: pointer; transition: 0.2s; }
-        .type-btn.selected { background: var(--theme); color: black; border-color: var(--theme); }
-
+        :root { --theme: #d4af37; --bg: #050505; --card-bg: rgba(20, 20, 25, 0.9); --text: #f0f0f0; }
+        body { margin: 0; padding: 0; background: var(--bg); color: var(--text); font-family: 'Segoe UI', sans-serif; overflow: hidden; }
+        .page { position: absolute; top: 0; left: 0; width: 100%; height: 100%; transition: transform 0.3s ease; display: flex; flex-direction: column; background: url('./bg.png') no-repeat center center/cover; }
+        .page::before { content: ""; position: absolute; top:0; left:0; width:100%; height:100%; background: rgba(0,0,0,0.85); z-index:-1; }
+        .hidden-left { transform: translateX(-100%); } .hidden-right { transform: translateX(100%); } .active { transform: translate(0, 0); }
+        .top-nav { height: 60px; display: flex; justify-content: space-between; align-items: center; padding: 0 20px; background: rgba(0,0,0,0.8); border-bottom: 1px solid #333; z-index: 500; }
+        .passport-btn { font-size: 24px; cursor: pointer; border: 1px solid var(--theme); padding: 5px; border-radius: 10px; background: rgba(212, 175, 55, 0.1); }
+        .lang-btn { background: #222; border: 1px solid #444; color: #888; padding: 5px 10px; border-radius: 15px; cursor: pointer; }
+        .lang-btn.active { background: var(--theme); color: black; font-weight: bold; border-color: var(--theme); }
+        .header-title { text-align: center; padding: 20px 0; font-size: 24px; font-weight: 900; color: var(--theme); letter-spacing: 3px; text-shadow: 0 0 10px rgba(212, 175, 55, 0.5); }
+        .country-select-container { text-align: center; margin-bottom: 10px; }
+        #country-select { width: 80%; padding: 10px; background: #111; border: 1px solid var(--theme); color: white; border-radius: 8px; }
+        .filter-box { display: flex; gap: 8px; overflow-x: auto; padding: 10px 20px; scrollbar-width: none; justify-content: center; }
+        .type-btn { padding: 8px 15px; border-radius: 20px; font-size: 12px; background: #1a1a1a; color: #aaa; border: 1px solid #333; white-space: nowrap; cursor: pointer; }
+        .type-btn.selected { background: var(--theme); color: black; font-weight: bold; }
         .list-container { flex: 1; overflow-y: auto; padding: 0 20px 100px 20px; }
-        .card { background: var(--card-bg); border: 1px solid #333; border-radius: 16px; padding: 20px; margin-bottom: 15px; position: relative; }
-        .card.visited { border: 2px solid var(--theme); box-shadow: 0 0 10px rgba(212, 175, 55, 0.2); }
+        .card { background: var(--card-bg); border: 1px solid #333; border-radius: 15px; padding: 20px; margin-bottom: 15px; position: relative; }
+        .card.visited { border: 2px solid var(--theme); }
         .visited-badge { position: absolute; top: -8px; right: -8px; background: var(--theme); color: black; font-weight: bold; padding: 4px 10px; border-radius: 12px; font-size: 10px; }
-        
-        .card-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
         .card-name { font-size: 18px; font-weight: bold; color: var(--theme); }
-        .card-label { font-size: 10px; padding: 3px 8px; border-radius: 6px; background: rgba(212, 175, 55, 0.1); color: var(--theme); border: 1px solid var(--theme); }
-        .card-desc { font-size: 13px; color: #aaa; line-height: 1.5; margin-bottom: 15px; }
-        .card-actions { display: flex; gap: 8px; }
-        .action-btn { flex: 1; padding: 10px; border-radius: 8px; border: none; font-weight: bold; font-size: 12px; cursor: pointer; }
-        .btn-review { background: var(--theme); color: black; }
-        .btn-map { background: #333; color: white; border: 1px solid #555; }
-
-        /* Emily Button */
-        .bartender-btn { position: fixed; bottom: 30px; right: 20px; width: 75px; height: 75px; border-radius: 50%; background: #000 url('./emily.jpg') no-repeat center center; background-size: cover; border: 3px solid var(--theme); z-index: 999; cursor: pointer; box-shadow: 0 0 15px rgba(212, 175, 55, 0.5); }
-
-        /* Chat */
-        .chat-container { flex: 1; overflow-y: auto; padding: 20px; display: flex; flex-direction: column; gap: 15px; }
-        .chat-msg { max-width: 80%; padding: 12px 16px; border-radius: 16px; font-size: 14px; line-height: 1.5; }
-        .chat-bot { align-self: flex-start; background: #222; border: 1px solid #333; color: #eee; border-top-left-radius: 4px; }
-        .chat-user { align-self: flex-end; background: var(--theme); color: black; border-top-right-radius: 4px; font-weight: bold; }
-        .chat-input-area { padding: 15px; background: #111; display: flex; gap: 10px; border-top: 1px solid #333; }
-        .chat-input { flex: 1; padding: 12px; border-radius: 10px; border: 1px solid #444; background: #222; color: white; outline: none; }
-        .chat-send { padding: 0 20px; background: var(--theme); color: black; border: none; border-radius: 10px; font-weight: bold; cursor: pointer; }
-        .reco-btn { margin-top: 8px; padding: 10px; background: var(--theme); border: none; border-radius: 8px; color: black; font-size: 13px; font-weight: bold; cursor: pointer; width: 100%; text-align: left; }
-        .reco-btn.external { background: var(--theme-ext); color: white; border: 1px dashed #d8b4fe; }
-
-        /* Detail */
-        #detail-map { width: 100%; height: 35vh; border-bottom: 2px solid var(--theme); }
-        .review-box { flex: 1; overflow-y: auto; padding: 25px; }
-        .review-title { font-size: 24px; color: var(--theme); font-weight: bold; margin-bottom: 5px; }
-        .review-content { font-size: 15px; line-height: 1.8; color: #ddd; white-space: pre-wrap; font-family: 'Segoe UI', serif; }
-        .btn-add-db { background: var(--theme-ext); color: white; margin-top: 10px; padding: 10px; border:none; border-radius:8px; width:100%; font-weight:bold; cursor:pointer;}
-
-        /* Map Search */
+        .card-desc { font-size: 13px; color: #ccc; margin: 10px 0; }
+        .action-btn { background: var(--theme); color: black; border: none; padding: 8px 15px; border-radius: 8px; font-weight: bold; cursor: pointer; font-size: 12px; }
+        .map-btn { background: #333; color: white; border: 1px solid #555; }
+        .emily-btn { position: fixed; bottom: 30px; right: 20px; width: 70px; height: 70px; border-radius: 50%; background: black url('./emily.jpg') no-repeat center/cover; border: 2px solid var(--theme); box-shadow: 0 0 15px rgba(212, 175, 55, 0.5); z-index: 999; cursor: pointer; }
+        .chat-container { flex: 1; overflow-y: auto; padding: 20px; display: flex; flex-direction: column; gap: 10px; background: rgba(0,0,0,0.8); }
+        .msg { max-width: 80%; padding: 12px; border-radius: 12px; font-size: 14px; }
+        .msg.bot { background: #222; border: 1px solid #333; align-self: flex-start; }
+        .msg.user { background: var(--theme); color: black; align-self: flex-end; font-weight: bold; }
+        .reco-btn { display: block; margin-top: 8px; padding: 10px; background: var(--theme); color: black; border-radius: 8px; font-weight: bold; text-decoration: none; font-size: 12px; cursor: pointer; border:none; width: 100%; text-align: center; }
+        .chat-input-area { padding: 15px; background: #111; display: flex; gap: 10px; }
+        .chat-input { flex: 1; padding: 10px; border-radius: 8px; background: #222; border: 1px solid #333; color: white; }
         .map-search-box { position: absolute; top: 80px; left: 50%; transform: translateX(-50%); width: 90%; max-width: 400px; display: flex; gap: 10px; z-index: 1000; }
         .map-input { flex: 1; padding: 12px 20px; border-radius: 30px; border: 2px solid var(--theme); background: rgba(0,0,0,0.85); color: white; outline: none; }
         .gps-btn { width: 45px; height: 45px; border-radius: 50%; background: var(--theme); border: none; color: black; font-size: 18px; cursor: pointer; display: flex; align-items: center; justify-content: center; }
-
-        /* Passport */
+        #detail-map { width: 100%; height: 35vh; border-bottom: 2px solid var(--theme); }
+        .review-box { flex: 1; overflow-y: auto; padding: 25px; background: rgba(0,0,0,0.9); }
+        .review-content { font-size: 15px; line-height: 1.6; color: #ddd; white-space: pre-wrap; }
         .passport-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 15px; padding: 20px; overflow-y: auto; }
         .stamp { aspect-ratio: 1; border: 2px dashed #444; border-radius: 12px; display: flex; flex-direction: column; align-items: center; justify-content: center; color: #444; font-size: 10px; background: #111; text-align: center; padding: 5px; }
         .stamp.active { border: 2px solid var(--theme); background: rgba(212, 175, 55, 0.1); color: var(--theme); }
-        
-        .leaflet-popup-content { color: #333; }
+        .leaflet-popup-content-wrapper { background: #1a1a1a; color: white; border: 1px solid var(--theme); }
     </style>
 </head>
 <body>
-
     <div id="page-main" class="page active">
         <div class="top-nav">
-            <div class="passport-btn" onclick="nav('page-passport', 'right')">🍺</div>
-            <div class="lang-switcher">
-                <div class="lang-btn active" id="lang-KO" onclick="setLang('KO')">KR</div>
-                <div class="lang-btn" id="lang-EN" onclick="setLang('EN')">EN</div>
+            <div class="passport-btn" onclick="nav('page-passport')">🍸</div>
+            <div style="display:flex; gap:5px;">
+                <div class="lang-btn active" onclick="setLang('KO')">KR</div>
+                <div class="lang-btn" onclick="setLang('EN')">EN</div>
             </div>
         </div>
-        <div class="header-title">
-            <div>DRUNKEN PLANE</div>
-            <button class="map-trigger-btn" onclick="nav('page-map', 'bottom'); initMap();">🗺️ WORLD BAR MAP</button>
-        </div>
-        <div class="country-select-container">
-            <select id="country-select" onchange="filterCountry(this.value)"></select>
-        </div>
-        <div class="filter-container" id="filter-box"></div>
+        <div class="header-title">DRUNKEN PLANE</div>
+        <div class="country-select-container"><select id="country-select" onchange="filterCountry(this.value)"></select></div>
+        <div class="filter-box" id="filter-box"></div>
         <div class="list-container" id="place-list"></div>
-        <div class="bartender-btn" onclick="nav('page-chat', 'bottom'); startChat();"></div>
+        <div class="emily-btn" onclick="nav('page-chat'); startChat();"></div>
     </div>
 
-    <div id="page-passport" class="page hidden-left">
-        <div class="top-nav" style="background:#111;"><button style="background:none;border:none;color:white;font-size:24px;" onclick="nav('page-main', 'active')">←</button> <div style="font-weight:bold;">PASSPORT</div> <div></div></div>
-        <div id="stamp-grid" class="passport-grid"></div>
-    </div>
-
-    <div id="page-map" class="page hidden-bottom">
-        <div class="top-nav" style="background:#111;"><button style="background:none;border:none;color:white;font-size:24px;" onclick="nav('page-main', 'active')">🏠</button> <div style="font-weight:bold;">BAR MAP</div> <div></div></div>
+    <div id="page-map" class="page hidden-right">
+        <div class="top-nav"><button onclick="nav('page-main')" style="background:none;border:none;color:white;font-size:20px;">🏠 Home</button></div>
         <div class="map-search-box">
-            <input id="map-input" class="map-input" type="text" placeholder="Find Bar..." onkeydown="if(event.key==='Enter') searchMap()">
+            <input id="map-input" class="map-input" type="text" placeholder="Search Bar..." onkeydown="if(event.key==='Enter') searchMap()">
             <button class="gps-btn" onclick="panToUser()">◎</button>
         </div>
-        <div id="world-map" style="width: 100%; height: 100%;"></div>
+        <div id="world-map" style="width:100%; height:100%;"></div>
     </div>
 
-    <div id="page-chat" class="page hidden-bottom">
-        <div class="top-nav" style="background:#111;"><button style="background:none;border:none;color:white;font-size:24px;" onclick="nav('page-main', 'active')">↓</button> <div style="font-weight:bold;">Bartender Emily</div> <div></div></div>
+    <div id="page-chat" class="page hidden-right">
+        <div class="top-nav"><button onclick="nav('page-main')" style="background:none;border:none;color:white;font-size:20px;">↓ Down</button> <div>Bartender Emily</div></div>
         <div id="chat-box" class="chat-container"></div>
         <div class="chat-input-area">
-            <input id="chat-msg-input" class="chat-input" type="text" placeholder="Recommended me a drink..." onkeydown="if(event.key==='Enter') sendChat()">
-            <button class="chat-send" onclick="sendChat()">➤</button>
+            <input id="chat-input" class="chat-input" type="text" placeholder="Recommendation?" onkeydown="if(event.key==='Enter') sendChat()">
+            <button onclick="sendChat()" style="background:var(--theme); border:none; padding:0 20px; border-radius:8px; font-weight:bold;">➤</button>
         </div>
     </div>
 
     <div id="page-detail" class="page hidden-right">
-        <div class="top-nav" style="background:#111;"><button style="background:none;border:none;color:white;font-size:24px;" onclick="nav('page-main', 'active')">←</button> <div style="font-weight:bold;">Tasting Note</div> <div></div></div>
+        <div class="top-nav"><button onclick="nav('page-main')" style="background:none;border:none;color:white;font-size:20px;">← Back</button></div>
         <div id="detail-map"></div>
         <div class="review-box">
-            <div id="review-title" class="review-title">Loading...</div>
-            <div id="review-sub" style="color:#888;margin-bottom:10px;"></div>
+            <h2 id="review-title" style="color:var(--theme);">Loading...</h2>
             <div id="review-content" class="review-content">Emily is tasting... 🥃</div>
-            <div class="review-actions">
-                <button id="btn-open-map" class="action-btn btn-map">🗺️ GOOGLE MAP</button>
-                <button id="btn-stamp" class="action-btn btn-review">🥂 CHEERS</button>
+            <div style="margin-top:20px; display:flex; gap:10px;">
+                <button id="btn-google-map" class="action-btn map-btn" style="flex:1;">🗺️ GOOGLE MAP</button>
+                <button id="btn-stamp" class="action-btn" style="flex:1;">🥂 CHEERS</button>
             </div>
-            <div id="add-db-area"></div>
         </div>
+    </div>
+
+    <div id="page-passport" class="page hidden-left">
+        <div class="top-nav"><button onclick="nav('page-main')" style="background:none;border:none;color:white;font-size:20px;">→ Back</button> DRINK LOG</div>
+        <div id="stamp-grid" class="passport-grid"></div>
     </div>
 
     <script type="module">
         import { AIBrain } from './ai_brain.js';
 
-        // ⚙️ CONFIG
-        let GROQ_API_KEY = "GROQ_KEY_PLACEHOLDER";
-        // 🔥 Drunken Plane용 새 시트 주소!
-        const SHEET_CSV_URL = "https://docs.google.com/spreadsheets/d/YOUR_NEW_DRUNKEN_SHEET_ID/pub?output=csv";
-        // 🔥 Drunken Plane용 새 앱스 스크립트 URL!
-        const GAS_URL = "YOUR_NEW_GAS_SCRIPT_URL";
-
-        // Global State
+        // 🚨 GitHub Actions가 이 부분을 실제 주소로 교체합니다! (그대로 두세요)
+        const SHEET_CSV_URL = "__SECRET_SHEET_URL__"; 
+        
+        let GROQ_API_KEY = ""; 
         let PLACE_DB = {};
         let currentLang = 'KO';
         let currentFilter = 'All';
         let currentCountry = '';
         let visitedPlaces = JSON.parse(localStorage.getItem('drunken_visited') || '[]');
-        let requestList = JSON.parse(localStorage.getItem('drunken_requests') || '[]'); 
         let userLat = null, userLon = null;
-        let mapInstance = null, detailMapInstance = null;
-        let markerLayer = null;
-        let chatHistory = [];
         let emily = null;
+        let mapInstance = null, detailMapInstance = null;
 
         const TRANSLATIONS = {
             "KO": { ai: "Korean", greet: "어서오세요! 🍸 오늘은 어떤 술이 당기시나요?", filters: ["🌐 전체", "🥃 위스키", "🍺 맥주", "🍷 와인", "🍹 칵테일", "🏺 전통주"], types: ["All", "Whisky", "Beer", "Wine", "Cocktail", "Traditional"] },
             "EN": { ai: "English", greet: "Welcome! 🍸 What are you drinking tonight?", filters: ["🌐 All", "🥃 Whisky", "🍺 Beer", "🍷 Wine", "🍹 Cocktail", "🏺 Local"], types: ["All", "Whisky", "Beer", "Wine", "Cocktail", "Traditional"] }
         };
 
-        // 🚀 INIT
         window.onload = async () => {
-            if (!GROQ_API_KEY || GROQ_API_KEY.includes("PLACEHOLDER")) {
-                const inputKey = prompt("Groq API Key (for Drunken Plane):");
-                if (inputKey) GROQ_API_KEY = inputKey;
-            }
-            emily = new AIBrain(GROQ_API_KEY, TRANSLATIONS[currentLang]);
+            const key = prompt("Enter Groq API Key for Drunken Plane:");
+            if(key) { GROQ_API_KEY = key; emily = new AIBrain(GROQ_API_KEY, TRANSLATIONS[currentLang]); }
             await loadData();
-            if (navigator.geolocation) {
-                navigator.geolocation.getCurrentPosition(pos => {
-                    userLat = pos.coords.latitude;
-                    userLon = pos.coords.longitude;
-                    renderList();
-                });
-            }
+            if(navigator.geolocation) navigator.geolocation.getCurrentPosition(pos => { userLat = pos.coords.latitude; userLon = pos.coords.longitude; renderList(); });
         };
 
         async function loadData() {
             try {
-                // CSV Parsing Logic (Same as Halal Plane but robust)
-                const res = await fetch(SHEET_CSV_URL);
-                const text = await res.text();
-                // Simple CSV Parser logic needed here or reuse the one from previous chats
-                // For brevity, assuming standard comma separation
-                const rows = text.split('\n').map(r => r.split(',')); 
-                // ... (Parsing logic same as before, creating PLACE_DB) ...
-                // Due to length limits, I trust you to copy the parsing logic from Halal Plane!
-                // It works exactly the same.
-                
-                // Temporary Mock for Demo if CSV fails
-                if(!rows || rows.length < 2) {
-                    PLACE_DB = {
-                        "Korea": [
-                            {name: "Zest", lat: 37.525, lon: 127.040, category: "Cocktail", label: "World Best", desc_ko: "서울 최고의 지속가능한 칵테일 바", address: "Seoul"},
-                            {name: "Charles H", lat: 37.570, lon: 126.975, category: "Cocktail", label: "Speakeasy", desc_ko: "포시즌스 호텔의 비밀스러운 바", address: "Seoul"}
-                        ]
-                    };
-                }
-                
-                // Render Initial
-                const keys = Object.keys(PLACE_DB);
-                if(keys.length > 0) {
-                    const select = document.getElementById('country-select');
-                    select.innerHTML = "";
-                    keys.forEach(k => {
-                        const opt = document.createElement('option');
-                        opt.value = k; opt.innerText = k;
-                        select.appendChild(opt);
+                if(SHEET_CSV_URL.includes("SECRET")) { 
+                    // 로컬 테스트용 (배포 전엔 에러 안 나게 더미 데이터 사용)
+                    console.log("Dev Mode: Using Dummy Data"); 
+                    PLACE_DB = {"Korea": [{name:"Zest", lat:37.525, lon:127.040, category:"Cocktail", label:"Bar", desc_ko:"Dev Mode"}]}; 
+                } else {
+                    const res = await fetch(SHEET_CSV_URL);
+                    const text = await res.text();
+                    const rows = text.split('\n').map(row => {
+                        const regex = /,(?=(?:(?:[^"]*"){2})*[^"]*$)/;
+                        return row.split(regex).map(cell => cell.replace(/^"|"$/g, '').trim());
                     });
-                    currentCountry = keys[0];
-                    renderFilters();
-                    renderList();
+                    const headers = rows[0];
+                    PLACE_DB = {};
+                    for(let i=1; i<rows.length; i++) {
+                        if(rows[i].length < headers.length) continue;
+                        let obj = {};
+                        rows[i].forEach((v, k) => obj[headers[k]] = v);
+                        if(obj.Country) {
+                            if(!PLACE_DB[obj.Country]) PLACE_DB[obj.Country] = [];
+                            obj.lat = parseFloat(obj.lat);
+                            obj.lon = parseFloat(obj.lon);
+                            PLACE_DB[obj.Country].push(obj);
+                        }
+                    }
                 }
-            } catch (e) { console.error(e); }
+                const select = document.getElementById('country-select');
+                Object.keys(PLACE_DB).forEach(c => { const opt = document.createElement('option'); opt.value = c; opt.innerText = c; select.appendChild(opt); });
+                if(Object.keys(PLACE_DB).length > 0) { currentCountry = Object.keys(PLACE_DB)[0]; renderFilters(); renderList(); }
+            } catch(e) { console.error("CSV Error:", e); }
         }
 
-        // ... (UI Functions: nav, setLang, renderFilters, renderList - copy from Halal Plane but change variable names if needed) ...
-        // Note: renderList should check p.category vs currentFilter.
+        window.nav = (id) => {
+            document.querySelectorAll('.page').forEach(p => p.classList.remove('active', 'hidden-right', 'hidden-left'));
+            document.getElementById(id).classList.add('active');
+            if(id === 'page-map') initMap();
+            if(id === 'page-passport') renderPassport();
+        };
 
-        window.nav = function(pageId) {
-            document.querySelectorAll('.page').forEach(p => {
-                p.classList.remove('active', 'hidden-left', 'hidden-right', 'hidden-bottom');
-                if (p.id !== pageId) p.classList.add('hidden-left');
+        window.setLang = (l) => { currentLang = l; if(emily) emily.t = TRANSLATIONS[l]; renderFilters(); renderList(); };
+        function renderFilters() {
+            const box = document.getElementById('filter-box'); box.innerHTML = '';
+            TRANSLATIONS[currentLang].filters.forEach((label, idx) => {
+                const type = TRANSLATIONS[currentLang].types[idx];
+                const btn = document.createElement('div');
+                btn.className = `type-btn ${currentFilter === type ? 'selected' : ''}`;
+                btn.innerText = label;
+                btn.onclick = () => { currentFilter = type; renderFilters(); renderList(); };
+                box.appendChild(btn);
             });
-            document.getElementById(pageId).classList.remove('hidden-left');
-            document.getElementById(pageId).classList.add('active');
-            if(pageId === 'page-passport') renderPassport();
         }
-        
-        // ... (Implement other UI functions similarly) ...
-        // Key changes:
-        // markVisited -> localStorage('drunken_visited')
-        // openReview -> calls emily.writeReview
-        
-        // Due to response length limit, rely on the Halal Plane logic for these UI handlers.
-        // They are 100% reusable. Just ensure 'emily' is used instead of 'amina'.
+        window.filterCountry = (c) => { currentCountry = c; renderList(); };
+        function renderList() {
+            const list = document.getElementById('place-list'); list.innerHTML = '';
+            const places = PLACE_DB[currentCountry] || [];
+            const filtered = places.filter(p => currentFilter === 'All' || (p.category && p.category.includes(currentFilter)));
+            filtered.forEach(p => {
+                const isVisited = visitedPlaces.includes(p.name);
+                const desc = currentLang === 'KO' ? (p.desc_ko || "") : (p.desc_en || p.desc_ko || "");
+                let distHtml = "";
+                if(userLat && userLon && p.lat && p.lon && emily) {
+                    const dist = emily.calculateDistance(userLat, userLon, p.lat, p.lon);
+                    distHtml = `<span style="font-size:12px;color:#888;">(📍 ${dist.toFixed(1)}km)</span>`;
+                }
+                const el = document.createElement('div');
+                el.className = `card ${isVisited ? 'visited' : ''}`;
+                el.innerHTML = `<div class="card-name">${p.name} ${distHtml}</div><div style="font-size:12px;color:#888;">${p.category}</div><div class="card-desc">${desc}</div><div style="display:flex;gap:10px;"><button class="action-btn" onclick="openReview('${p.name.replace(/'/g, "\\'")}', '${currentCountry}')">AI REVIEW</button><button class="action-btn map-btn" onclick="window.open('http://googleusercontent.com/maps.google.com/4{encodeURIComponent(p.name+' '+p.address)}')">MAP</button></div>${isVisited?'<div class="visited-badge">🏆 VISITED</div>':''}`;
+                list.appendChild(el);
+            });
+        }
+        window.openReview = async (name, country) => {
+            nav('page-detail');
+            document.getElementById('review-title').innerText = name;
+            document.getElementById('review-content').innerText = "Emily is pouring a drink... 🥃";
+            let place = PLACE_DB[country] ? PLACE_DB[country].find(p => p.name === name) : null;
+            if(place && place.lat) {
+                if(detailMapInstance) detailMapInstance.remove();
+                detailMapInstance = L.map('detail-map').setView([place.lat, place.lon], 15);
+                L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(detailMapInstance);
+                L.marker([place.lat, place.lon]).addTo(detailMapInstance);
+            }
+            document.getElementById('btn-google-map').onclick = () => window.open(`http://googleusercontent.com/maps.google.com/4{encodeURIComponent(name + ' ' + country)}`);
+            document.getElementById('btn-stamp').onclick = () => { if(!visitedPlaces.includes(name)) { visitedPlaces.push(name); localStorage.setItem('drunken_visited', JSON.stringify(visitedPlaces)); alert("Cheers! 🥂"); } };
+            if(emily) { const review = await emily.writeReview(name, country, false, place); document.getElementById('review-content').innerHTML = review; }
+        };
+        // Chat & Map logic... (Standard)
+        window.startChat = () => { if(chatHistory.length === 0) addMsg(TRANSLATIONS[currentLang].greet, 'bot'); };
+        let chatHistory = [];
+        window.sendChat = async () => {
+            const inp = document.getElementById('chat-input'); const txt = inp.value.trim(); if(!txt) return;
+            addMsg(txt, 'user'); inp.value = '';
+            if(emily) {
+                const userLoc = userLat ? {lat:userLat, lon:userLon} : null;
+                const reply = await emily.ask(txt, chatHistory, PLACE_DB, currentCountry, userLoc);
+                addMsg(reply.replace(/\[(.*?)\](\s*\(External\))?/g, (m,p1,p2)=>`<br><button class="reco-btn" onclick="openReview('${p1.replace(/'/g,"\\'")}','${currentCountry}')">📍 ${p1}</button>`), 'bot');
+                chatHistory.push({role:'user',content:txt}, {role:'assistant',content:reply});
+            }
+        };
+        function addMsg(txt, role) { const box = document.getElementById('chat-box'); const el = document.createElement('div'); el.className = `msg ${role}`; el.innerHTML = txt; box.appendChild(el); box.scrollTop = box.scrollHeight; }
+        window.initMap = () => {
+            if(!mapInstance) { mapInstance = L.map('world-map').setView([20,0], 2); L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(mapInstance); }
+            // Marker logic...
+        };
+        function renderPassport() { const g = document.getElementById('stamp-grid'); g.innerHTML=''; [...visitedPlaces].reverse().forEach(n=>{const e=document.createElement('div');e.className='stamp active';e.innerHTML=`<div style="font-size:24px">🍷</div><div>${n}</div>`;g.appendChild(e);});}
     </script>
 </body>
 </html>
