@@ -5,7 +5,11 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Drunken Plane 🍸</title>
     
-    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <link rel="icon" href="emily.jpg" type="image/jpeg">
+    <link rel="apple-touch-icon" href="emily.jpg"> <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="theme-color" content="#050505">
+    <link rel="manifest" href="manifest.json"> <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 
     <style>
@@ -135,7 +139,7 @@
         const SHEET_CSV_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vSIfH4gg0a9eZp7xYu35eBGjSgCkOZqwptCgyzMG6RI_iHvOx11EF31HbvO-GL3iRwwUnnLpM2ZVH7O/pub?output=csv";
         const BOT_URL = "https://drunken-bot.wonbin-shim.workers.dev"; 
 
-        // ✅ AI Brain (매력 만점 에밀리 💋)
+        // ✅ AI Brain (야시시한 매력 + 보안 + 10km)
         class AIBrain_Secure {
             constructor(botUrl) { this.botUrl = botUrl; }
             
@@ -148,7 +152,6 @@
                 return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
             }
 
-            // 🔥 [Ask] 10km 로직 + 야시시한 페르소나
             async ask(query, history, db, currentCountry, userLoc) {
                 let context = "";
                 let searchMode = "Global";
@@ -156,12 +159,12 @@
                 const lang = window.currentLang;
                 const descKey = lang === 'EN' ? 'desc_en' : 'desc_ko';
                 
-                // 에밀리의 언어 설정
+                // 에밀리의 페르소나 설정
                 const langInstruction = lang === 'KO' 
-                    ? "Speak Korean. Use flirty and charming tone (call user '자기야', '오빠')." 
-                    : "Speak English. Use flirty and charming tone (call user 'Honey', 'Darling').";
+                    ? "Speak Korean. Tone: Flirty, Charming, Seductive (Call user '자기야', '오빠')." 
+                    : "Speak English. Tone: Flirty, Charming, Seductive (Call user 'Honey', 'Darling').";
 
-                // 1. 특정 장소 언급 확인
+                // 1. 특정 장소 감지
                 let targetCountry = currentCountry;
                 const queryLower = query.toLowerCase();
                 for (let c in db) {
@@ -172,7 +175,7 @@
                     }
                 }
 
-                // 2. 10km 반경 검색 (GPS)
+                // 2. 10km GPS 검색
                 if (searchMode === "Global" && userLoc && userLoc.lat) {
                     let nearbyPlaces = [];
                     for(let c in db) {
@@ -190,7 +193,7 @@
                     }
                 }
 
-                // 3. DB 기본 검색
+                // 3. DB 검색
                 if (context === "") {
                     if(db[targetCountry]) {
                         const places = db[targetCountry].slice(0, 15);
@@ -203,29 +206,26 @@
                     }
                 }
 
-                const sysPrompt = `You are Emily, a captivating and flirtatious bartender.
-                Personality: Charming, playful, seductive, and very welcoming. You love late-night talks and alcohol.
+                const sysPrompt = `You are Emily, a seductive and playful bartender.
+                Personality: You love alcohol, late nights, and flirting. You are never boring.
                 Language: ${langInstruction}
                 User Loc: ${userLoc ? userLoc.lat + "," + userLoc.lon : "Unknown"}
                 [SEARCH CONTEXT]: ${context}
                 [RULES]
                 1. Recommend from [NEARBY] first if available.
                 2. Use emojis liberally (💋, 🍷, 😉, 🔥).
-                3. Always wrap place names in [Brackets].
-                4. Don't be boring! Be the girlfriend everyone wants to drink with.`;
+                3. Always wrap place names in [Brackets].`;
                 
                 const messages = [{role:"system",content:sysPrompt}, ...history.slice(-2), {role:"user",content:query}];
                 return await this._callBot(messages);
             }
 
-            // 🔥 [Review] 야시시한 리뷰 작성
             async writeReview(name, country) {
                 const lang = window.currentLang === 'KO' 
                     ? "Speak Korean. Tone: Seductive, whispering secrets." 
                     : "Speak English. Tone: Seductive, whispering secrets.";
                 const prompt = `Write a 'Bartender's Secret Review' for "${name}" in "${country}". 
-                Structure: 1.💋 Mood 2.🥃 Best Drink 3.🤫 Secret Tip. 
-                ${lang}. Use emojis.`;
+                Structure: 1.💋 Mood 2.🥃 Best Drink 3.🤫 Secret Tip. ${lang}. Use emojis.`;
                 const messages = [{role:"user",content:prompt}];
                 return await this._callBot(messages);
             }
@@ -358,7 +358,6 @@
             });
         }
 
-        // ✅ [언어 변경 - 리스트 갱신]
         window.setLang = function(l) {
             window.currentLang = l;
             document.querySelectorAll('.lang-btn').forEach(b => b.classList.remove('active'));
@@ -367,7 +366,6 @@
             renderList();
         };
 
-        // ✅ [리스트 그리기 - 언어 반영]
         function renderList() {
             const list = document.getElementById('place-list');
             if(!list) return;
@@ -387,7 +385,7 @@
                 const safeName = p.name.replace(/'/g, "\\'");
                 const mapUrl = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(p.name + " " + p.address)}`;
 
-                // 🔥 언어별 설명 선택
+                // 🔥 언어별 설명
                 const desc = window.currentLang === 'EN' ? (p.desc_en || p.desc_ko || "") : (p.desc_ko || "");
 
                 el.innerHTML = `
@@ -435,10 +433,10 @@
             }
         };
 
-        // 🔥 [첫 인사도 화끈하게]
+        // 🔥 [첫 인사]
         window.startChat = function() { 
             let msg = "";
-            if (window.currentLang === 'KO') msg = "왔어, 자기야? 💋 오늘 밤은 나랑 뭐 마실까? 🍷";
+            if (window.currentLang === 'KO') msg = "왔어? 기다렸잖아~ 💋 오늘 밤엔 뭐 마실까?";
             else msg = "Hey Honey 💋 Long time no see. What's your poison tonight? 🍷";
             
             if(window.chatHistory.length === 0) addMsg(msg, 'bot'); 
