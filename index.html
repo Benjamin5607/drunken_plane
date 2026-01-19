@@ -14,7 +14,7 @@
         * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
         body { margin: 0; padding: 0; background: var(--bg); color: var(--text); font-family: 'Segoe UI', sans-serif; overflow: hidden; }
         
-        /* 📱 PAGES (슬라이딩 + 유령터치 방지) */
+        /* 📱 PAGES */
         .page { 
             position: absolute; top: 0; left: 0; width: 100%; height: 100%; 
             display: flex; flex-direction: column; 
@@ -111,7 +111,7 @@
     <div id="page-chat" class="page hidden-right">
         <div class="sub-nav"><button class="back-btn" onclick="nav('page-main')">↓</button> <div class="nav-title">Emily</div></div>
         <div id="chat-box" class="chat-container"></div>
-        <div class="chat-input-area"><input id="chat-input" class="chat-input" type="text" placeholder="Ask Emily..."><button class="chat-send" onclick="sendChat()">➤</button></div>
+        <div class="chat-input-area"><input id="chat-input" class="chat-input" type="text" placeholder="Talk to Emily..."><button class="chat-send" onclick="sendChat()">➤</button></div>
     </div>
 
     <div id="page-detail" class="page hidden-right">
@@ -120,7 +120,7 @@
         <div class="review-box">
             <h2 id="review-title" style="color:var(--theme); margin:0;">Loading...</h2>
             <div id="review-sub" style="color:#888; font-style:italic; margin-bottom:15px;"></div>
-            <div id="review-content" style="line-height:1.6; color:#ccc;">Emily is tasting...</div>
+            <div id="review-content" style="line-height:1.6; color:#ccc;">Emily is tasting... 💋</div>
             <div style="margin-top:20px; display:flex; gap:10px;"><button id="btn-google-map" class="action-btn map-btn">GOOGLE MAP</button><button id="btn-stamp" class="action-btn">STAMP</button></div>
         </div>
     </div>
@@ -135,27 +135,31 @@
         const SHEET_CSV_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vSIfH4gg0a9eZp7xYu35eBGjSgCkOZqwptCgyzMG6RI_iHvOx11EF31HbvO-GL3iRwwUnnLpM2ZVH7O/pub?output=csv";
         const BOT_URL = "https://drunken-bot.wonbin-shim.workers.dev"; 
 
-        // ✅ AI Brain (언어 & 검색 로직 강화)
+        // ✅ AI Brain (매력 만점 에밀리 💋)
         class AIBrain_Secure {
             constructor(botUrl) { this.botUrl = botUrl; }
             
             getDistance(lat1, lon1, lat2, lon2) {
                 if (!lat1 || !lon1 || !lat2 || !lon2) return 99999;
-                const R = 6371; const dLat = (lat2 - lat1) * Math.PI / 180;
+                const R = 6371; 
+                const dLat = (lat2 - lat1) * Math.PI / 180;
                 const dLon = (lon2 - lon1) * Math.PI / 180;
                 const a = Math.sin(dLat/2) * Math.sin(dLat/2) + Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) * Math.sin(dLon/2) * Math.sin(dLon/2);
                 return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
             }
 
-            // 🔥 [수정] 언어별 검색 & 10km 로직
+            // 🔥 [Ask] 10km 로직 + 야시시한 페르소나
             async ask(query, history, db, currentCountry, userLoc) {
                 let context = "";
                 let searchMode = "Global";
                 
-                // 현재 언어 설정 확인 (KO/EN)
                 const lang = window.currentLang;
-                const langInstruction = lang === 'KO' ? "Speak Korean" : "Speak English";
                 const descKey = lang === 'EN' ? 'desc_en' : 'desc_ko';
+                
+                // 에밀리의 언어 설정
+                const langInstruction = lang === 'KO' 
+                    ? "Speak Korean. Use flirty and charming tone (call user '자기야', '오빠')." 
+                    : "Speak English. Use flirty and charming tone (call user 'Honey', 'Darling').";
 
                 // 1. 특정 장소 언급 확인
                 let targetCountry = currentCountry;
@@ -195,25 +199,33 @@
                             return `- [${p.name}] ${p.category}: ${desc}`;
                         }).join("\n");
                     } else {
-                        context = "No match.";
+                        context = "No specific bar found.";
                     }
                 }
 
-                const sysPrompt = `You are Emily, a bartender. ${langInstruction}.
+                const sysPrompt = `You are Emily, a captivating and flirtatious bartender.
+                Personality: Charming, playful, seductive, and very welcoming. You love late-night talks and alcohol.
+                Language: ${langInstruction}
                 User Loc: ${userLoc ? userLoc.lat + "," + userLoc.lon : "Unknown"}
                 [SEARCH CONTEXT]: ${context}
                 [RULES]
                 1. Recommend from [NEARBY] first if available.
-                2. Output names in brackets [Name].`;
+                2. Use emojis liberally (💋, 🍷, 😉, 🔥).
+                3. Always wrap place names in [Brackets].
+                4. Don't be boring! Be the girlfriend everyone wants to drink with.`;
                 
                 const messages = [{role:"system",content:sysPrompt}, ...history.slice(-2), {role:"user",content:query}];
                 return await this._callBot(messages);
             }
 
-            // 🔥 [수정] 리뷰 작성 시 언어 반영
+            // 🔥 [Review] 야시시한 리뷰 작성
             async writeReview(name, country) {
-                const lang = window.currentLang === 'KO' ? "Speak Korean" : "Speak English";
-                const prompt = `Write a 'Bartender Review' for "${name}" in "${country}". 1.Vibe 2.Drink 3.Tip. ${lang}.`;
+                const lang = window.currentLang === 'KO' 
+                    ? "Speak Korean. Tone: Seductive, whispering secrets." 
+                    : "Speak English. Tone: Seductive, whispering secrets.";
+                const prompt = `Write a 'Bartender's Secret Review' for "${name}" in "${country}". 
+                Structure: 1.💋 Mood 2.🥃 Best Drink 3.🤫 Secret Tip. 
+                ${lang}. Use emojis.`;
                 const messages = [{role:"user",content:prompt}];
                 return await this._callBot(messages);
             }
@@ -229,7 +241,7 @@
                         return data.choices[0].message.content;
                     }
                 } catch (e) { console.error(e); }
-                return "Emily is offline (Bot Error). 🍸";
+                return "Emily is busy powdering her nose... 💋 (Error)";
             }
         }
 
@@ -346,16 +358,16 @@
             });
         }
 
-        // ✅ [언어 변경 - 리스트 갱신 포함]
+        // ✅ [언어 변경 - 리스트 갱신]
         window.setLang = function(l) {
             window.currentLang = l;
             document.querySelectorAll('.lang-btn').forEach(b => b.classList.remove('active'));
             document.getElementById(`lang-${l}`).classList.add('active');
             renderFilters();
-            renderList(); // 🔥 여기서 리스트를 다시 그려야 영어가 나옴
+            renderList();
         };
 
-        // ✅ [리스트 그리기 - 언어별 설명 선택]
+        // ✅ [리스트 그리기 - 언어 반영]
         function renderList() {
             const list = document.getElementById('place-list');
             if(!list) return;
@@ -375,7 +387,7 @@
                 const safeName = p.name.replace(/'/g, "\\'");
                 const mapUrl = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(p.name + " " + p.address)}`;
 
-                // 🔥 언어별 설명 선택 (EN이면 desc_en, 없으면 desc_ko)
+                // 🔥 언어별 설명 선택
                 const desc = window.currentLang === 'EN' ? (p.desc_en || p.desc_ko || "") : (p.desc_ko || "");
 
                 el.innerHTML = `
@@ -396,7 +408,7 @@
             window.nav('page-detail');
             document.getElementById('review-title').innerText = name;
             document.getElementById('review-sub').innerText = country;
-            document.getElementById('review-content').innerText = "Emily is thinking... 🥃";
+            document.getElementById('review-content').innerText = "Emily is tasting... 💋";
             
             let place = window.PLACE_DB[country] ? window.PLACE_DB[country].find(p => p.name === name) : null;
             
@@ -423,8 +435,12 @@
             }
         };
 
+        // 🔥 [첫 인사도 화끈하게]
         window.startChat = function() { 
-            const msg = window.currentLang === 'KO' ? "어서오세요! 🥃" : "Welcome! 🥃";
+            let msg = "";
+            if (window.currentLang === 'KO') msg = "왔어, 자기야? 💋 오늘 밤은 나랑 뭐 마실까? 🍷";
+            else msg = "Hey Honey 💋 Long time no see. What's your poison tonight? 🍷";
+            
             if(window.chatHistory.length === 0) addMsg(msg, 'bot'); 
         };
 
