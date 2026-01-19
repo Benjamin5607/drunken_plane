@@ -1,8 +1,8 @@
-name: Deploy Drunken Plane 🍸
+name: Deploy Drunken Plane 🥃
 
 on:
   push:
-    branches: ["main"] # 메인 브랜치에 푸시하면 작동
+    branches: ["main"]
   workflow_dispatch:
 
 permissions:
@@ -24,12 +24,13 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      # 🔥 [핵심] 여기서 HTML 파일의 가짜 주소를 진짜 시크릿으로 바꿔치기 합니다!
-      - name: Inject Sheet URL
+      # 🔥 [핵심] 시크릿 주입 (Injection)
+      # index.html 파일 내의 __SECRET_...__ 문자열을 실제 시크릿 값으로 변경합니다.
+      - name: Inject Secrets
         run: |
-          sed -i 's|REPLACE_WITH_SHEET_URL|${{ secrets.PRIVATE_SHEET_URL }}|g' index.html
-        # sed 명령어는 텍스트를 찾아바꾸는 리눅스 명령어입니다.
-
+          sed -i 's|__SECRET_SHEET_URL__|${{ secrets.PRIVATE_SHEET_URL }}|g' index.html
+          sed -i 's|__SECRET_GROQ_KEY__|${{ secrets.GROQ_API_KEY }}|g' index.html
+        
       - name: Setup Pages
         uses: actions/configure-pages@v5
         
@@ -37,7 +38,7 @@ jobs:
         uses: actions/upload-pages-artifact@v3
         with:
           path: '.'
-
+          
       - name: Deploy to GitHub Pages
         id: deployment
         uses: actions/deploy-pages@v4
