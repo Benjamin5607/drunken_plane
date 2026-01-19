@@ -1,0 +1,43 @@
+name: Deploy Drunken Plane 🍸
+
+on:
+  push:
+    branches: ["main"] # 메인 브랜치에 푸시하면 작동
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: "pages"
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      # 🔥 [핵심] 여기서 HTML 파일의 가짜 주소를 진짜 시크릿으로 바꿔치기 합니다!
+      - name: Inject Sheet URL
+        run: |
+          sed -i 's|REPLACE_WITH_SHEET_URL|${{ secrets.PRIVATE_SHEET_URL }}|g' index.html
+        # sed 명령어는 텍스트를 찾아바꾸는 리눅스 명령어입니다.
+
+      - name: Setup Pages
+        uses: actions/configure-pages@v5
+        
+      - name: Upload artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: '.'
+
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
