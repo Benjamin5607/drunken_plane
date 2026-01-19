@@ -1,4 +1,4 @@
-name: Deploy Drunken Plane 🥃
+name: Deploy Drunken Plane 🍸
 
 on:
   push:
@@ -24,21 +24,22 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      # 🔥 [핵심] 시크릿 주입 (Injection)
-      # index.html 파일 내의 __SECRET_...__ 문자열을 실제 시크릿 값으로 변경합니다.
+      # 🔥 [수정됨] API Key 주입 방식 강화
       - name: Inject Secrets
+        env:
+          SHEET_URL: ${{ secrets.PRIVATE_SHEET_URL }}
+          GROQ_KEY: ${{ secrets.GROQ_API_KEY }}
         run: |
-          sed -i 's|__SECRET_SHEET_URL__|${{ secrets.PRIVATE_SHEET_URL }}|g' index.html
-          sed -i 's|__SECRET_GROQ_KEY__|${{ secrets.GROQ_API_KEY }}|g' index.html
+          # index.html 파일에서 플레이스홀더를 찾아서 시크릿 값으로 교체
+          sed -i "s|__SECRET_SHEET_URL__|$SHEET_URL|g" index.html
+          sed -i "s|__SECRET_GROQ_KEY__|$GROQ_KEY|g" index.html
         
       - name: Setup Pages
         uses: actions/configure-pages@v5
-        
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3
         with:
           path: '.'
-          
       - name: Deploy to GitHub Pages
         id: deployment
         uses: actions/deploy-pages@v4
