@@ -14,12 +14,12 @@
         * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
         body { margin: 0; padding: 0; background: var(--bg); color: var(--text); font-family: 'Segoe UI', sans-serif; overflow: hidden; }
         
-        /* 📱 PAGES */
+        /* 📱 PAGES (슬라이딩 + 유령터치 방지) */
         .page { 
             position: absolute; top: 0; left: 0; width: 100%; height: 100%; 
             display: flex; flex-direction: column; 
             background: url('./bg.png') no-repeat center center/cover; 
-            transition: transform 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94), opacity 0.3s;
+            transition: transform 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94), opacity 0.4s;
             z-index: 0; pointer-events: none; opacity: 0; transform: translateX(100%);
         }
         .page::before { content: ""; position: absolute; top:0; left:0; width:100%; height:100%; background: rgba(0,0,0,0.85); z-index:-1; }
@@ -27,21 +27,15 @@
         .page.hidden-left { transform: translateX(-30%); opacity: 0; pointer-events: none; } 
         .page.hidden-right { transform: translateX(100%); opacity: 0; pointer-events: none; }
 
-        /* 🧭 TOP NAV (버튼 복구) */
+        /* 🧭 TOP NAV */
         .top-nav { height: 60px; display: flex; justify-content: space-between; align-items: center; padding: 0 15px; background: rgba(0,0,0,0.95); border-bottom: 1px solid #333; z-index: 100; flex-shrink: 0; }
         .icon-btn { font-size: 24px; cursor: pointer; border: 1px solid var(--theme); padding: 5px 10px; border-radius: 8px; background: rgba(212, 175, 55, 0.1); color: var(--theme); }
         .header-title { font-size: 20px; font-weight: 900; color: var(--theme); letter-spacing: 2px; }
         
-        /* 🇰🇷 LANG SWITCHER (디자인 수정) */
+        /* 🇰🇷 LANG SWITCHER */
         .lang-switcher { display: flex; gap: 5px; }
-        .lang-btn { 
-            background: #222; border: 1px solid #444; color: #888; 
-            padding: 5px 10px; border-radius: 12px; cursor: pointer; font-size: 12px; font-weight: bold;
-            transition: 0.2s;
-        }
-        .lang-btn.active { 
-            background: var(--theme); color: black; border-color: var(--theme); 
-        }
+        .lang-btn { background: #222; border: 1px solid #444; color: #888; padding: 5px 10px; border-radius: 12px; cursor: pointer; font-size: 12px; font-weight: bold; transition: 0.2s; }
+        .lang-btn.active { background: var(--theme); color: black; border-color: var(--theme); }
 
         /* UI COMPONENTS */
         .country-select-container { padding: 10px 20px; }
@@ -85,6 +79,7 @@
         .stamp.active { border: 2px solid var(--theme); background: rgba(212, 175, 55, 0.1); color: #fff; }
         .leaflet-popup-content-wrapper { background: #222; color: white; border: 1px solid var(--theme); }
         .popup-btn { width: 100%; margin-top: 5px; padding: 5px; background: var(--theme); border: none; cursor: pointer; font-weight: bold; }
+        .reco-btn { margin-top: 8px; padding: 8px; background: var(--theme); color: black; border-radius: 6px; font-weight: bold; cursor: pointer; border:none; width: 100%; text-align: left; }
     </style>
 </head>
 <body>
@@ -92,12 +87,10 @@
     <div id="page-main" class="page active">
         <div class="top-nav">
             <button class="icon-btn" onclick="nav('page-passport')">🎫</button>
-            
             <div class="lang-switcher">
                 <div class="lang-btn active" id="lang-KO" onclick="setLang('KO')">KR</div>
                 <div class="lang-btn" id="lang-EN" onclick="setLang('EN')">EN</div>
             </div>
-            
             <button class="icon-btn" onclick="nav('page-map')">🗺️</button>
         </div>
         <div class="header-title">DRUNKEN PLANE</div>
@@ -118,7 +111,7 @@
     <div id="page-chat" class="page hidden-right">
         <div class="sub-nav"><button class="back-btn" onclick="nav('page-main')">↓</button> <div class="nav-title">Emily</div></div>
         <div id="chat-box" class="chat-container"></div>
-        <div class="chat-input-area"><input id="chat-input" class="chat-input" type="text" placeholder="Recommend me..."><button class="chat-send" onclick="sendChat()">➤</button></div>
+        <div class="chat-input-area"><input id="chat-input" class="chat-input" type="text" placeholder="Ask Emily..."><button class="chat-send" onclick="sendChat()">➤</button></div>
     </div>
 
     <div id="page-detail" class="page hidden-right">
@@ -138,89 +131,89 @@
     </div>
 
     <script>
-        // ✅ [설정]
+        // ✅ 설정
         const SHEET_CSV_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vSIfH4gg0a9eZp7xYu35eBGjSgCkOZqwptCgyzMG6RI_iHvOx11EF31HbvO-GL3iRwwUnnLpM2ZVH7O/pub?output=csv";
         const BOT_URL = "https://drunken-bot.wonbin-shim.workers.dev"; 
 
-        // ✅ [AI 두뇌: 거리 계산 & 로직 강화]
+        // ✅ AI Brain (언어 & 검색 로직 강화)
         class AIBrain_Secure {
             constructor(botUrl) { this.botUrl = botUrl; }
             
-            // 거리 계산 (Haversine Formula)
             getDistance(lat1, lon1, lat2, lon2) {
                 if (!lat1 || !lon1 || !lat2 || !lon2) return 99999;
-                const R = 6371; // Earth radius km
-                const dLat = (lat2 - lat1) * Math.PI / 180;
+                const R = 6371; const dLat = (lat2 - lat1) * Math.PI / 180;
                 const dLon = (lon2 - lon1) * Math.PI / 180;
-                const a = Math.sin(dLat/2) * Math.sin(dLat/2) +
-                          Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
-                          Math.sin(dLon/2) * Math.sin(dLon/2);
+                const a = Math.sin(dLat/2) * Math.sin(dLat/2) + Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) * Math.sin(dLon/2) * Math.sin(dLon/2);
                 return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
             }
 
-            // 🔥 [스마트 검색 로직]
+            // 🔥 [수정] 언어별 검색 & 10km 로직
             async ask(query, history, db, currentCountry, userLoc) {
                 let context = "";
                 let searchMode = "Global";
+                
+                // 현재 언어 설정 확인 (KO/EN)
+                const lang = window.currentLang;
+                const langInstruction = lang === 'KO' ? "Speak Korean" : "Speak English";
+                const descKey = lang === 'EN' ? 'desc_en' : 'desc_ko';
 
-                // 1. 특정 장소(DB에 있는 도시) 언급했는지 확인
-                // (예: "Japan 추천해줘" -> Japan DB 사용)
+                // 1. 특정 장소 언급 확인
                 let targetCountry = currentCountry;
                 const queryLower = query.toLowerCase();
                 for (let c in db) {
                     if (queryLower.includes(c.toLowerCase())) {
                         targetCountry = c;
-                        searchMode = "Target Country: " + c;
+                        searchMode = "Target Country";
                         break;
                     }
                 }
 
-                // 2. 장소 언급 없고 + GPS 있으면 -> 10km 반경 검색 (우선순위 1)
+                // 2. 10km 반경 검색 (GPS)
                 if (searchMode === "Global" && userLoc && userLoc.lat) {
                     let nearbyPlaces = [];
-                    // 모든 국가 뒤져서 10km 이내 찾기
                     for(let c in db) {
                         db[c].forEach(p => {
                             const d = this.getDistance(userLoc.lat, userLoc.lon, p.lat, p.lon);
                             if (d <= 10) nearbyPlaces.push({ ...p, dist: d });
                         });
                     }
-                    
                     if (nearbyPlaces.length > 0) {
-                        // 가까운 순 정렬
                         nearbyPlaces.sort((a,b) => a.dist - b.dist);
-                        context = "NEARBY (10km):\n" + nearbyPlaces.slice(0, 10).map(p => `- [${p.name}] ${p.category} (${p.dist.toFixed(1)}km): ${p.desc_ko}`).join("\n");
-                        searchMode = "GPS Radius";
+                        context = "NEARBY (10km):\n" + nearbyPlaces.slice(0, 10).map(p => {
+                            const desc = p[descKey] || p.desc_ko || "";
+                            return `- [${p.name}] ${p.category} (${p.dist.toFixed(1)}km): ${desc}`;
+                        }).join("\n");
                     }
                 }
 
-                // 3. GPS로 못 찾았거나 특정 장소면 -> 해당 국가/도시 리스트 사용
+                // 3. DB 기본 검색
                 if (context === "") {
                     if(db[targetCountry]) {
-                        // 너무 많으면 자르기 (토큰 절약)
                         const places = db[targetCountry].slice(0, 15);
-                        context = `REGION (${targetCountry}):\n` + places.map(p => `- [${p.name}] ${p.category}: ${p.desc_ko}`).join("\n");
+                        context = `REGION (${targetCountry}):\n` + places.map(p => {
+                            const desc = p[descKey] || p.desc_ko || "";
+                            return `- [${p.name}] ${p.category}: ${desc}`;
+                        }).join("\n");
                     } else {
-                        context = "No database match.";
+                        context = "No match.";
                     }
                 }
 
-                // 프롬프트 작성
-                const sysPrompt = `You are Emily, a witty bartender. Speak Korean.
+                const sysPrompt = `You are Emily, a bartender. ${langInstruction}.
                 User Loc: ${userLoc ? userLoc.lat + "," + userLoc.lon : "Unknown"}
                 [SEARCH CONTEXT]: ${context}
                 [RULES]
-                1. If [NEARBY] exists, recommend from there first.
-                2. If user asks for a specific place in context, recommend it.
-                3. Always wrap place names in [Brackets].
-                4. Be concise and fun.`;
+                1. Recommend from [NEARBY] first if available.
+                2. Output names in brackets [Name].`;
                 
                 const messages = [{role:"system",content:sysPrompt}, ...history.slice(-2), {role:"user",content:query}];
                 return await this._callBot(messages);
             }
 
+            // 🔥 [수정] 리뷰 작성 시 언어 반영
             async writeReview(name, country) {
-                const prompt = `Write a 'Bartender Review' for "${name}" in "${country}". 1.Atmosphere 2.Drink 3.Tip. Speak Korean.`;
+                const lang = window.currentLang === 'KO' ? "Speak Korean" : "Speak English";
+                const prompt = `Write a 'Bartender Review' for "${name}" in "${country}". 1.Vibe 2.Drink 3.Tip. ${lang}.`;
                 const messages = [{role:"user",content:prompt}];
                 return await this._callBot(messages);
             }
@@ -259,7 +252,7 @@
             "EN": { filters: ["🌐 All", "🥃 Whisky", "🍺 Beer", "🍷 Wine", "🍹 Cocktail", "🏺 Local"], types: ["All", "Whisky", "Beer", "Wine", "Cocktail", "Traditional"] }
         };
 
-        // ✅ [네비게이션]
+        // ✅ [화면 전환]
         window.nav = function(targetId) {
             document.querySelectorAll('.page').forEach(el => {
                 if(el.id === targetId) {
@@ -278,7 +271,7 @@
         // ✅ [초기화]
         document.addEventListener('DOMContentLoaded', async () => {
             console.log("App Init...");
-            window.emily = new AIBrain_Secure(BOT_URL); // 보안 봇 연결
+            window.emily = new AIBrain_Secure(BOT_URL);
             await loadData();
             if(navigator.geolocation) {
                 navigator.geolocation.getCurrentPosition(pos => {
@@ -289,7 +282,7 @@
             }
         });
 
-        // ✅ [데이터]
+        // ✅ [데이터 로드]
         async function loadData() {
             try {
                 const res = await fetch(SHEET_CSV_URL);
@@ -353,14 +346,16 @@
             });
         }
 
+        // ✅ [언어 변경 - 리스트 갱신 포함]
         window.setLang = function(l) {
             window.currentLang = l;
             document.querySelectorAll('.lang-btn').forEach(b => b.classList.remove('active'));
             document.getElementById(`lang-${l}`).classList.add('active');
             renderFilters();
-            renderList();
+            renderList(); // 🔥 여기서 리스트를 다시 그려야 영어가 나옴
         };
 
+        // ✅ [리스트 그리기 - 언어별 설명 선택]
         function renderList() {
             const list = document.getElementById('place-list');
             if(!list) return;
@@ -380,11 +375,14 @@
                 const safeName = p.name.replace(/'/g, "\\'");
                 const mapUrl = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(p.name + " " + p.address)}`;
 
+                // 🔥 언어별 설명 선택 (EN이면 desc_en, 없으면 desc_ko)
+                const desc = window.currentLang === 'EN' ? (p.desc_en || p.desc_ko || "") : (p.desc_ko || "");
+
                 el.innerHTML = `
                     ${isVisited ? '<div class="visited-badge">🏆 VISITED</div>' : ''}
                     <div class="card-name">${p.name} ${distHtml}</div>
                     <div class="card-sub">${p.category}</div>
-                    <div class="card-desc">${p.desc_ko || ""}</div>
+                    <div class="card-desc">${desc}</div>
                     <div class="card-actions">
                         <button class="action-btn" onclick="openReview('${safeName}', '${window.currentCountry}')">AI REVIEW</button>
                         <button class="action-btn map-btn" onclick="window.open('${mapUrl}', '_blank')">MAP</button>
@@ -426,7 +424,8 @@
         };
 
         window.startChat = function() { 
-            if(window.chatHistory.length === 0) addMsg("어서오세요! 🥃", 'bot'); 
+            const msg = window.currentLang === 'KO' ? "어서오세요! 🥃" : "Welcome! 🥃";
+            if(window.chatHistory.length === 0) addMsg(msg, 'bot'); 
         };
 
         window.sendChat = async function() {
