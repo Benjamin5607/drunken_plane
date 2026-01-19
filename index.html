@@ -9,75 +9,100 @@
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 
     <style>
-        /* CSS는 기존과 동일하게 유지 */
+        /* 🎨 THEME: Champagne Gold & Midnight Black */
         :root { --theme: #d4af37; --bg: #050505; --card-bg: rgba(30, 30, 35, 0.95); --text: #f0f0f0; }
+        
         * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
         body { margin: 0; padding: 0; background: var(--bg); color: var(--text); font-family: 'Segoe UI', sans-serif; overflow: hidden; }
         
-        .page { position: absolute; top: 0; left: 0; width: 100%; height: 100%; display: flex; flex-direction: column; background: url('./bg.png') no-repeat center center/cover; z-index: 10; transition: transform 0.3s ease; }
+        /* 📱 PAGE SLIDING SYSTEM (핵심) */
+        .page { 
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%; 
+            display: flex; flex-direction: column; 
+            background: url('./bg.png') no-repeat center center/cover; 
+            transition: transform 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94), opacity 0.4s;
+            z-index: 0;
+            
+            /* 🔥 중요: 활성 상태 아니면 클릭 불가 (유령 터치 방지) */
+            pointer-events: none; 
+            opacity: 0; 
+            transform: translateX(100%);
+        }
         .page::before { content: ""; position: absolute; top:0; left:0; width:100%; height:100%; background: rgba(0,0,0,0.85); z-index:-1; }
         
-        .hidden-left { transform: translateX(-100%); z-index: 20; }
-        .hidden-right { transform: translateX(100%); z-index: 20; }
-        .active { transform: translate(0, 0); z-index: 10; }
+        /* 활성화된 페이지 */
+        .page.active { 
+            transform: translateX(0); 
+            opacity: 1; 
+            z-index: 10;
+            pointer-events: auto; /* 클릭 가능 */
+        }
 
-        /* Nav & Headers */
-        .top-nav { height: 60px; display: flex; justify-content: space-between; align-items: center; padding: 0 15px; background: rgba(0,0,0,0.9); border-bottom: 1px solid #333; z-index: 100; flex-shrink: 0; }
+        /* 슬라이딩 방향 처리 */
+        .page.hidden-left { transform: translateX(-30%); opacity: 0; pointer-events: none; } 
+        .page.hidden-right { transform: translateX(100%); opacity: 0; pointer-events: none; }
+
+        /* 🧭 TOP NAV */
+        .top-nav { height: 60px; display: flex; justify-content: space-between; align-items: center; padding: 0 15px; background: rgba(0,0,0,0.95); border-bottom: 1px solid #333; z-index: 100; flex-shrink: 0; }
         .icon-btn { font-size: 24px; cursor: pointer; border: 1px solid var(--theme); padding: 5px 10px; border-radius: 8px; background: rgba(212, 175, 55, 0.1); color: var(--theme); }
-        .lang-switcher { display: flex; gap: 5px; }
-        .lang-btn { background: #222; border: 1px solid #444; color: #888; padding: 5px 10px; border-radius: 12px; cursor: pointer; font-size: 12px; }
-        .lang-btn.active { background: var(--theme); color: black; font-weight: bold; }
-        .header-title { text-align: center; padding: 15px 0; font-size: 24px; font-weight: 900; color: var(--theme); letter-spacing: 3px; }
+        .header-title { font-size: 20px; font-weight: 900; color: var(--theme); letter-spacing: 2px; }
         
-        /* Filters & List */
-        .country-select-container { padding: 0 20px; margin-bottom: 10px; }
-        #country-select { width: 100%; padding: 12px; background: #111; border: 1px solid var(--theme); color: white; border-radius: 8px; font-size: 16px; }
+        /* 🟢 LIST UI */
+        .country-select-container { padding: 10px 20px; }
+        #country-select { width: 100%; padding: 12px; background: #111; border: 1px solid var(--theme); color: white; border-radius: 8px; font-size: 16px; outline:none; }
         .filter-box { display: flex; gap: 8px; overflow-x: auto; padding: 0 20px 10px 20px; scrollbar-width: none; flex-shrink: 0; }
-        .type-btn { padding: 8px 15px; border-radius: 20px; font-size: 12px; background: #1a1a1a; color: #aaa; border: 1px solid #444; white-space: nowrap; cursor: pointer; }
-        .type-btn.selected { background: var(--theme); color: black; font-weight: bold; }
+        .type-btn { padding: 8px 15px; border-radius: 20px; font-size: 12px; background: #222; color: #aaa; border: 1px solid #444; white-space: nowrap; cursor: pointer; }
+        .type-btn.selected { background: var(--theme); color: black; font-weight: bold; border-color: var(--theme); }
         .list-container { flex: 1; overflow-y: auto; padding: 0 20px 80px 20px; }
         
-        /* Card */
-        .card { background: var(--card-bg); border: 1px solid #444; border-radius: 16px; padding: 15px; margin-bottom: 15px; position: relative; }
+        /* 🃏 CARD */
+        .card { background: var(--card-bg); border: 1px solid #444; border-radius: 12px; padding: 15px; margin-bottom: 12px; }
         .card.visited { border: 1px solid var(--theme); }
-        .visited-badge { position: absolute; top: -8px; right: -8px; background: var(--theme); color: black; font-weight: bold; padding: 3px 8px; border-radius: 10px; font-size: 10px; }
+        .visited-badge { display: inline-block; background: var(--theme); color: black; font-weight: bold; padding: 2px 6px; border-radius: 4px; font-size: 10px; margin-bottom: 5px; }
         .card-name { font-size: 18px; font-weight: bold; color: var(--theme); }
-        .card-sub { font-size: 11px; color: #888; margin-bottom: 5px; }
-        .card-desc { font-size: 13px; color: #ccc; margin: 10px 0; line-height: 1.4; }
-        .card-actions { display: flex; gap: 10px; }
-        .action-btn { flex: 1; background: var(--theme); color: black; border: none; padding: 8px; border-radius: 6px; font-weight: bold; cursor: pointer; font-size: 12px; }
+        .card-sub { font-size: 12px; color: #888; margin-bottom: 8px; }
+        .card-desc { font-size: 13px; color: #ccc; margin-bottom: 12px; line-height: 1.4; }
+        .card-actions { display: flex; gap: 8px; }
+        .action-btn { flex: 1; background: var(--theme); color: black; border: none; padding: 10px; border-radius: 8px; font-weight: bold; cursor: pointer; font-size: 12px; }
         .map-btn { background: #333; color: white; border: 1px solid #555; }
 
-        /* Emily Button */
-        .emily-btn { position: fixed; bottom: 30px; right: 20px; width: 70px; height: 70px; border-radius: 50%; background: black url('./emily.jpg') no-repeat center center/cover; border: 2px solid var(--theme); z-index: 100; cursor: pointer; }
-        
-        /* Sub Page Nav */
-        .sub-nav { display: flex; align-items: center; height: 60px; padding: 0 15px; background: #111; border-bottom: 1px solid #333; }
+        /* 👩‍🦰 EMILY BUTTON */
+        .emily-btn { 
+            position: fixed; bottom: 30px; right: 20px; width: 75px; height: 75px; 
+            border-radius: 50%; background: black url('./emily.jpg') no-repeat center center/cover; 
+            border: 2px solid var(--theme); z-index: 999; cursor: pointer; box-shadow: 0 0 20px rgba(212, 175, 55, 0.6); 
+        }
+
+        /* 💬 SUB PAGES */
+        .sub-nav { display: flex; align-items: center; height: 60px; padding: 0 15px; background: #111; border-bottom: 1px solid #333; flex-shrink:0; }
         .back-btn { background: none; border: none; color: white; font-size: 24px; margin-right: 15px; cursor: pointer; }
         .nav-title { font-weight: bold; font-size: 18px; color: var(--theme); }
+        
+        .chat-container { flex: 1; overflow-y: auto; padding: 15px; display: flex; flex-direction: column; gap: 10px; }
+        .msg { max-width: 80%; padding: 10px 14px; border-radius: 12px; font-size: 14px; line-height: 1.4; }
+        .msg.bot { background: #222; align-self: flex-start; color: #eee; border: 1px solid #333; }
+        .msg.user { background: var(--theme); align-self: flex-end; color: black; font-weight: bold; }
+        .chat-input-area { padding: 15px; background: #111; display: flex; gap: 10px; border-top: 1px solid #333; }
+        .chat-input { flex: 1; padding: 12px; border-radius: 8px; background: #222; border: 1px solid #444; color: white; outline:none; }
+        .chat-send { background: var(--theme); border: none; padding: 0 20px; border-radius: 8px; font-weight: bold; cursor: pointer; }
 
-        /* Map & Detail Components */
         .map-search-box { position: absolute; top: 70px; left: 50%; transform: translateX(-50%); width: 90%; z-index: 1000; display: flex; gap: 5px; }
         .map-input { flex: 1; padding: 10px; border-radius: 8px; background: rgba(0,0,0,0.8); color: white; border: 1px solid var(--theme); }
         .gps-btn { background: var(--theme); border: none; width: 40px; border-radius: 8px; cursor: pointer; }
         #detail-map { width: 100%; height: 35vh; border-bottom: 2px solid var(--theme); }
         .review-box { flex: 1; overflow-y: auto; padding: 20px; }
         
-        /* Chat Components */
-        .chat-container { flex: 1; overflow-y: auto; padding: 20px; display: flex; flex-direction: column; gap: 10px; }
-        .msg { max-width: 80%; padding: 10px 15px; border-radius: 12px; font-size: 14px; }
-        .msg.bot { background: #222; align-self: flex-start; color: #eee; }
-        .msg.user { background: var(--theme); align-self: flex-end; color: black; font-weight: bold; }
-        .chat-input-area { padding: 15px; background: #111; display: flex; gap: 10px; border-top: 1px solid #333; }
-        .chat-input { flex: 1; padding: 10px; border-radius: 8px; background: #222; border: 1px solid #444; color: white; }
-        .chat-send { background: var(--theme); border: none; padding: 0 20px; border-radius: 10px; font-weight: bold; cursor: pointer; }
+        .passport-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; padding: 20px; overflow-y: auto; }
+        .stamp { aspect-ratio: 1; border: 2px dashed #444; border-radius: 12px; display: flex; flex-direction: column; align-items: center; justify-content: center; background: #111; color: #666; font-size: 10px; }
+        .stamp.active { border: 2px solid var(--theme); background: rgba(212, 175, 55, 0.1); color: #fff; }
         
-        /* Passport & Leaflet */
-        .passport-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 15px; padding: 20px; overflow-y: auto; }
-        .stamp { aspect-ratio: 1; border: 2px solid var(--theme); border-radius: 12px; display: flex; flex-direction: column; align-items: center; justify-content: center; background: rgba(212, 175, 55, 0.1); color: #fff; font-size: 12px; }
+        .lang-switcher { display: flex; gap: 5px; }
+        .lang-btn { background: #222; border: 1px solid #444; color: #888; padding: 5px 10px; border-radius: 12px; cursor: pointer; font-size: 12px; }
+        .lang-btn.active { background: var(--theme); color: black; font-weight: bold; }
+        
         .leaflet-popup-content-wrapper { background: #222; color: white; border: 1px solid var(--theme); }
         .popup-btn { width: 100%; margin-top: 5px; padding: 5px; background: var(--theme); border: none; cursor: pointer; font-weight: bold; }
-        .reco-btn { margin-top: 8px; padding: 10px; background: var(--theme); color: black; border-radius: 8px; font-weight: bold; cursor: pointer; border:none; width: 100%; text-align: left; }
+        .reco-btn { margin-top: 8px; padding: 8px; background: var(--theme); color: black; border-radius: 6px; font-weight: bold; cursor: pointer; border:none; width: 100%; text-align: left; }
     </style>
 </head>
 <body>
@@ -85,23 +110,19 @@
     <div id="page-main" class="page active">
         <div class="top-nav">
             <button class="icon-btn" onclick="nav('page-passport')">🎫</button>
-            <div class="lang-switcher">
-                <div class="lang-btn active" id="lang-KO" onclick="setLang('KO')">KR</div>
-                <div class="lang-btn" id="lang-EN" onclick="setLang('EN')">EN</div>
-            </div>
+            <div class="header-title">DRUNKEN PLANE</div>
             <button class="icon-btn" onclick="nav('page-map')">🗺️</button>
         </div>
-        <div class="header-title">DRUNKEN PLANE</div>
         <div class="country-select-container"><select id="country-select" onchange="filterCountry(this.value)"></select></div>
         <div class="filter-box" id="filter-box"></div>
         <div class="list-container" id="place-list">
-            <div style="text-align:center; padding:40px; color:#666;">Loading Data...</div>
+            <div style="text-align:center; padding:40px; color:#666;">Loading Bars...<br>🥃</div>
         </div>
         <div class="emily-btn" onclick="nav('page-chat'); startChat();"></div>
     </div>
 
     <div id="page-map" class="page hidden-right">
-        <div class="sub-nav"><button class="back-btn" onclick="nav('page-main')">🏠</button> <div class="nav-title">MAP</div></div>
+        <div class="sub-nav"><button class="back-btn" onclick="nav('page-main')">🏠</button> <div class="nav-title">WORLD MAP</div></div>
         <div class="map-search-box"><input id="map-input" class="map-input" type="text" placeholder="Search..."><button class="gps-btn" onclick="panToUser()">◎</button></div>
         <div id="world-map" style="width:100%; height:100%;"></div>
     </div>
@@ -109,7 +130,7 @@
     <div id="page-chat" class="page hidden-right">
         <div class="sub-nav"><button class="back-btn" onclick="nav('page-main')">↓</button> <div class="nav-title">Emily</div></div>
         <div id="chat-box" class="chat-container"></div>
-        <div class="chat-input-area"><input id="chat-input" class="chat-input" type="text" placeholder="Ask..."><button class="chat-send" onclick="sendChat()">➤</button></div>
+        <div class="chat-input-area"><input id="chat-input" class="chat-input" type="text" placeholder="Ask Emily..."><button class="chat-send" onclick="sendChat()">➤</button></div>
     </div>
 
     <div id="page-detail" class="page hidden-right">
@@ -117,9 +138,9 @@
         <div id="detail-map"></div>
         <div class="review-box">
             <h2 id="review-title" style="color:var(--theme); margin:0;">Loading...</h2>
-            <div id="review-sub" style="color:#888; font-style:italic; margin-bottom:10px;"></div>
+            <div id="review-sub" style="color:#888; font-style:italic; margin-bottom:15px;"></div>
             <div id="review-content" style="line-height:1.6; color:#ccc;">Emily is tasting...</div>
-            <div style="margin-top:20px; display:flex; gap:10px;"><button id="btn-google-map" class="action-btn map-btn">MAP</button><button id="btn-stamp" class="action-btn">STAMP</button></div>
+            <div style="margin-top:20px; display:flex; gap:10px;"><button id="btn-google-map" class="action-btn map-btn">GOOGLE MAP</button><button id="btn-stamp" class="action-btn">STAMP</button></div>
         </div>
     </div>
 
@@ -128,15 +149,64 @@
         <div id="stamp-grid" class="passport-grid"></div>
     </div>
 
-    <script type="module">
-        // ✅ 1. IMPORT (분리된 파일 사용)
-        import { AIBrain } from './ai_brain.js';
-
-        // ✅ 2. CONFIG (주입용 키 & 주소)
+    <script>
+        // ✅ [설정] 봇 주소와 시트 주소
         const SHEET_CSV_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vSIfH4gg0a9eZp7xYu35eBGjSgCkOZqwptCgyzMG6RI_iHvOx11EF31HbvO-GL3iRwwUnnLpM2ZVH7O/pub?output=csv";
-        const INJECTED_KEY = "__SECRET_GROQ_KEY__"; // 깃허브가 교체함
+        const BOT_URL = "https://drunken-bot.wonbin-shim.workers.dev"; // 마니아님의 봇 주소
 
-        // ✅ 3. GLOBAL STATE (전역 변수)
+        // ✅ [AI 두뇌] 봇에게 요청만 함 (키는 봇이 가지고 있음)
+        class AIBrain_Secure {
+            constructor(botUrl) { this.botUrl = botUrl; }
+            
+            calculateDistance(lat1, lon1, lat2, lon2) {
+                if (!lat1 || !lon1 || !lat2 || !lon2) return 99999;
+                const R = 6371; const dLat = (lat2 - lat1) * (Math.PI / 180);
+                const dLon = (lon2 - lon1) * (Math.PI / 180);
+                const a = Math.sin(dLat / 2) * Math.sin(dLat / 2) + Math.cos(lat1 * (Math.PI / 180)) * Math.cos(lat2 * (Math.PI / 180)) * Math.sin(dLon / 2) * Math.sin(dLon / 2);
+                return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+            }
+
+            async ask(query, history, db, country, userLoc) {
+                // 검색 컨텍스트 만들기
+                let context = "No specific bar found.";
+                if(db[country]) {
+                    const places = db[country].slice(0, 5);
+                    context = places.map(p => `- [${p.name}] ${p.category}: ${p.desc_ko}`).join("\n");
+                }
+                const sysPrompt = `You are Emily, a bartender. Speak Korean.
+                User Loc: ${userLoc ? userLoc.lat : "Unknown"}
+                Current Map: ${country}
+                [DB]: ${context}
+                Context Rules: 1. Recommend from DB first. 2. Output names in brackets [Name].`;
+                
+                // 봇 호출
+                const messages = [{role:"system",content:sysPrompt}, ...history.slice(-2), {role:"user",content:query}];
+                return await this._callBot(messages);
+            }
+
+            async writeReview(name, country) {
+                const prompt = `Write a 'Bartender Review' for "${name}" in "${country}". 1.Vibe 2.Drink 3.Tip. Speak Korean.`;
+                const messages = [{role:"user",content:prompt}];
+                return await this._callBot(messages);
+            }
+
+            async _callBot(messages) {
+                try {
+                    const res = await fetch(this.botUrl, {
+                        method: "POST",
+                        headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify({ messages: messages })
+                    });
+                    if (res.ok) {
+                        const data = await res.json();
+                        return data.choices[0].message.content; // 봇이 준 답변
+                    }
+                } catch (e) { console.error(e); }
+                return "Emily is offline (Bot Error). 🍸";
+            }
+        }
+
+        // ✅ [전역 변수]
         window.PLACE_DB = {};
         window.currentLang = 'KO';
         window.currentFilter = 'All';
@@ -146,75 +216,56 @@
         window.userLon = null;
         window.emily = null;
         window.mapInstance = null;
-        window.markerLayer = null;
         window.detailMapInstance = null;
+        window.markerLayer = null;
         window.chatHistory = [];
-        window.GROQ_API_KEY = "";
 
         const TRANSLATIONS = {
             "KO": { ai: "Korean", greet: "어서오세요! 🍸 오늘은 어떤 술이 당기시나요?", filters: ["🌐 전체", "🥃 위스키", "🍺 맥주", "🍷 와인", "🍹 칵테일", "🏺 전통주"], types: ["All", "Whisky", "Beer", "Wine", "Cocktail", "Traditional"] },
             "EN": { ai: "English", greet: "Welcome! 🍸 What are you drinking tonight?", filters: ["🌐 All", "🥃 Whisky", "🍺 Beer", "🍷 Wine", "🍹 Cocktail", "🏺 Local"], types: ["All", "Whisky", "Beer", "Wine", "Cocktail", "Traditional"] }
         };
 
-        // ✅ 4. INITIALIZATION (초기화)
-        // DOMContentLoaded 이벤트를 사용하여 HTML이 다 로딩된 후 실행
-        document.addEventListener('DOMContentLoaded', async () => {
-            console.log("App Initializing...");
-
-            // (1) 키 확인 및 설정
-            if (INJECTED_KEY.startsWith("gsk_")) {
-                window.GROQ_API_KEY = INJECTED_KEY;
-                console.log("Key Injected Successfully.");
-            } else {
-                const storedKey = localStorage.getItem('groq_key');
-                if (storedKey) {
-                    window.GROQ_API_KEY = storedKey;
+        // ✅ [화면 전환] 슬라이딩 + 클릭 버그 해결
+        window.nav = function(targetId) {
+            document.querySelectorAll('.page').forEach(el => {
+                if(el.id === targetId) {
+                    el.classList.remove('hidden-left', 'hidden-right');
+                    el.classList.add('active');
                 } else {
-                    const inputKey = prompt("Groq API Key (saved locally):");
-                    if(inputKey) {
-                        window.GROQ_API_KEY = inputKey;
-                        localStorage.setItem('groq_key', inputKey);
-                    }
+                    el.classList.remove('active');
+                    // 메인 화면으로 돌아갈 때와 서브 화면으로 갈 때 애니메이션 방향
+                    if (targetId === 'page-main') el.classList.add('hidden-right');
+                    else el.classList.add('hidden-left');
                 }
-            }
+            });
 
-            // (2) AI 생성 (키 없어도 더미 생성 안함 - 키 체크 로직에서 방어)
-            if (window.GROQ_API_KEY) {
-                window.emily = new AIBrain(window.GROQ_API_KEY, TRANSLATIONS[window.currentLang]);
-            }
+            if(targetId === 'page-map') initMap();
+            if(targetId === 'page-passport') renderPassport();
+        };
 
-            // (3) 데이터 로드
+        // ✅ [초기화]
+        document.addEventListener('DOMContentLoaded', async () => {
+            console.log("App Init...");
+            
+            // 보안 AI 뇌 장착 (키 필요 없음)
+            window.emily = new AIBrain_Secure(BOT_URL);
+
             await loadData();
 
-            // (4) GPS
             if(navigator.geolocation) {
                 navigator.geolocation.getCurrentPosition(pos => {
                     window.userLat = pos.coords.latitude;
                     window.userLon = pos.coords.longitude;
-                    renderList(); // 거리 계산 후 재렌더링
+                    renderList();
                 });
             }
         });
 
-        // ✅ 5. FUNCTIONS EXPORT TO WINDOW (이게 핵심!)
-        // 모듈 안의 함수를 window 객체에 붙여서 HTML에서 onclick="nav(...)"가 작동하게 함
-
-        window.nav = function(id) {
-            document.querySelectorAll('.page').forEach(p => p.classList.remove('active', 'hidden-right', 'hidden-left'));
-            // 단순화된 화면 전환
-            const target = document.getElementById(id);
-            target.classList.remove('hidden-right', 'hidden-left'); // 혹시 남아있을 클래스 제거
-            target.classList.add('active');
-            
-            if(id === 'page-map') initMap();
-            if(id === 'page-passport') renderPassport();
-        };
-
+        // ✅ [데이터 로드]
         async function loadData() {
             try {
                 const res = await fetch(SHEET_CSV_URL);
                 const text = await res.text();
-                // CSV 파싱
                 const rows = text.split('\n').map(row => {
                     let inQuote = false, tokens = [], token = "";
                     for(let i=0; i<row.length; i++) {
@@ -241,6 +292,7 @@
                     }
                 }
 
+                // UI 그리기
                 const select = document.getElementById('country-select');
                 if(select) {
                     select.innerHTML = "";
@@ -258,15 +310,6 @@
             } catch(e) { console.error(e); }
         }
 
-        window.setLang = function(l) {
-            window.currentLang = l;
-            document.querySelectorAll('.lang-btn').forEach(b => b.classList.remove('active'));
-            document.getElementById(`lang-${l}`).classList.add('active');
-            if(window.emily) window.emily.t = TRANSLATIONS[l];
-            renderFilters();
-            renderList();
-        };
-
         window.filterCountry = function(c) { window.currentCountry = c; renderList(); };
 
         function renderFilters() {
@@ -283,6 +326,14 @@
             });
         }
 
+        window.setLang = function(l) {
+            window.currentLang = l;
+            document.querySelectorAll('.lang-btn').forEach(b => b.classList.remove('active'));
+            document.getElementById(`lang-${l}`).classList.add('active');
+            renderFilters();
+            renderList();
+        };
+
         function renderList() {
             const list = document.getElementById('place-list');
             if(!list) return;
@@ -291,7 +342,6 @@
             const filtered = places.filter(p => window.currentFilter === 'All' || (p.category && p.category.includes(window.currentFilter)));
 
             filtered.forEach(p => {
-                const desc = window.currentLang === 'KO' ? (p.desc_ko || "") : (p.desc_en || p.desc_ko || "");
                 let distHtml = "";
                 if(window.userLat && window.emily && p.lat) {
                     const dist = window.emily.calculateDistance(window.userLat, window.userLon, p.lat, p.lon);
@@ -300,7 +350,6 @@
                 const isVisited = window.visitedPlaces.includes(p.name);
                 const el = document.createElement('div');
                 el.className = `card ${isVisited ? 'visited' : ''}`;
-                
                 const safeName = p.name.replace(/'/g, "\\'");
                 const mapUrl = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(p.name + " " + p.address)}`;
 
@@ -308,7 +357,7 @@
                     ${isVisited ? '<div class="visited-badge">🏆 VISITED</div>' : ''}
                     <div class="card-name">${p.name} ${distHtml}</div>
                     <div class="card-sub">${p.category} | ${p.label}</div>
-                    <div class="card-desc">${desc}</div>
+                    <div class="card-desc">${p.desc_ko || ""}</div>
                     <div class="card-actions">
                         <button class="action-btn" onclick="openReview('${safeName}', '${window.currentCountry}')">AI REVIEW</button>
                         <button class="action-btn map-btn" onclick="window.open('${mapUrl}', '_blank')">MAP</button>
@@ -322,7 +371,7 @@
             window.nav('page-detail');
             document.getElementById('review-title').innerText = name;
             document.getElementById('review-sub').innerText = country;
-            document.getElementById('review-content').innerText = "Emily is pouring a drink... 🥃";
+            document.getElementById('review-content').innerText = "Emily is thinking... 🥃";
             
             let place = window.PLACE_DB[country] ? window.PLACE_DB[country].find(p => p.name === name) : null;
             
@@ -339,15 +388,13 @@
                 if(!window.visitedPlaces.includes(name)) { 
                     window.visitedPlaces.push(name); 
                     localStorage.setItem('drunken_visited', JSON.stringify(window.visitedPlaces)); 
-                    alert("Cheers! 🥂 Stamped."); 
+                    alert("Cheers! 🥂"); 
                 } 
             };
 
             if(window.emily) { 
-                const review = await window.emily.writeReview(name, country, false, place); 
+                const review = await window.emily.writeReview(name, country); 
                 document.getElementById('review-content').innerHTML = review; 
-            } else {
-                document.getElementById('review-content').innerText = "API Key needed for AI Review.";
             }
         };
 
@@ -373,8 +420,6 @@
                 
                 addMsg(fmtReply, 'bot');
                 window.chatHistory.push({role:'user',content:txt}, {role:'assistant',content:reply});
-            } else {
-                addMsg("API Key가 필요합니다.", 'bot');
             }
         };
 
@@ -407,7 +452,19 @@
         window.searchMap = function() {
             const q = document.getElementById('map-input').value.toLowerCase();
             let found = false;
-            // ... (검색 로직 생략, 기존과 동일) ...
+            for(let c in window.PLACE_DB) {
+                for(let p of window.PLACE_DB[c]) {
+                    if((p.name+p.address).toLowerCase().includes(q)) {
+                        if(p.lat && window.mapInstance) {
+                            window.mapInstance.setView([p.lat, p.lon], 16);
+                            L.popup().setLatLng([p.lat, p.lon]).setContent(`<b>${p.name}</b>`).openOn(window.mapInstance);
+                            found = true; break;
+                        }
+                    }
+                }
+                if(found) break;
+            }
+            if(!found) alert("Not found");
         };
 
         window.panToUser = function() {
