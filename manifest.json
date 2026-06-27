@@ -1,6 +1,8 @@
 {
   "name": "Drunken Plane",
   "short_name": "Drunken",
+  "description": "Global bar & spirits guide with AI bartender Emily",
+  "lang": "ko",
   "start_url": "./index.html",
   "display": "standalone",
   "background_color": "#050505",
